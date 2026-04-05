@@ -21,9 +21,12 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS posts (
     id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     title        VARCHAR(255) NOT NULL,
+    title_en     VARCHAR(255),
     slug         VARCHAR(255) NOT NULL UNIQUE,
     excerpt      TEXT,
+    excerpt_en   TEXT,
     content      LONGTEXT,
+    content_en   LONGTEXT,
     cover_image  VARCHAR(500),
     published    TINYINT(1) NOT NULL DEFAULT 0,
     published_at TIMESTAMP NULL,
@@ -104,11 +107,15 @@ INSERT INTO menu_items (category_id, name, name_jp, description, price, availabl
   (4, 'Welcome Set',           'ウェルカムセット','Drink + dessert + maid photo',                    24.00, 1, 1),
   (4, 'Dream Garden Set',      'ドリームガーデンセット','Omu-rice + drink + parfait',                35.00, 1, 2);
 
-INSERT INTO members (name, name_jp, role, description, theme_color, sort_order) VALUES
-  ('Ivy',     'アイビー', 'maid',    'Sweet and cheerful, Ivy loves flowers and tea ceremonies.', '#7CB878', 1),
-  ('Felix',   'フェリクス','butler', 'Elegant and refined, Felix is always ready to serve with a smile.', '#6B9FD4', 2),
-  ('Chocola', 'ショコラ', 'maid',    'Sweet as chocolate, she brings warmth and joy to every event.',     '#C17B5A', 3),
-  ('Leaf',    'リーフ',   'maid',    'Calm and graceful, Leaf brings the peace of nature to the café.',   '#5FB35F', 4),
-  ('Mail',    'メイル',   'maid',    'Lively and energetic, Mail loves games and entertaining guests.',    '#FF8FA3', 5),
-  ('Vitya',   'ヴィーチャ','maid',   'Cool and mysterious, Vitya captivates with her icy blue charm.',    '#89CFF0', 6),
-  ('Tsuki',   'ツキ',     'maid',    'Moonlit and dreamy, Tsuki whispers stars into every cup.',          '#C9A7EB', 7);
+INSERT INTO members (name, name_jp, role, description, image, theme_color, sort_order) VALUES
+  ('Ivy',    'アイビー',  'maid',    'Sweet and cheerful, Ivy loves flowers and tea ceremonies.', NULL, '#7CB878', 1),
+  ('Felix',  'フェリクス','butler',  'Elegant and refined, Felix is always ready to serve with a smile.', NULL, '#6B9FD4', 2),
+  ('Chocola','ショコラ',  'maid',    'Sweet as chocolate, she brings warmth and joy to every event.', '/uploads/member_chocola.jpg', '#C17B5A', 3),
+  ('Leaf',   'リーフ',    'maid',    'Calm and graceful, Leaf brings the peace of nature to the café.', NULL, '#5FB35F', 4),
+  ('Mail',   'メイル',    'maid',    'Lively and energetic, Mail loves games and entertaining guests.', NULL, '#FF8FA3', 5),
+  ('Vitya',  'ヴィーチャ','maid',    'Cool and mysterious, Vitya captivates with her icy blue charm.', NULL, '#89CFF0', 6),
+  ('Tsuki',  'ツキ',      'maid',    'Moonlit and dreamy, Tsuki whispers stars into every cup.', NULL, '#C9A7EB', 7),
+  ('Akii',   'アキイ',    'maid',    'Maid Akii mit ihren charakteristischen dunklen Zöpfen und der blauen Schleife. ✨', '/uploads/member_akii.jpg', '#BAE6FD', 8),
+  ('Maii',   'マイ',      'maid',    'Maid Maii (auch bekannt als Alice) — unsere süsse Bunny-Maid mit Brille. ʕ•ᴥ•ʔ', '/uploads/member_maii.jpg', '#FFB7D5', 9),
+  ('Lumen',  'ルーメン',  'maid',    'Maid Lumen — unsere helle Sternen-Maid! Pokemon-Enthusiastin. 💡🖤', '/uploads/member_lumen.jpg', '#DDD6FE', 10),
+  ('Taro',   'タロ',      'maid',    'Maid Taro — Kochprofi und Bäckerin des DreamGardens. (о´∀´о) 🍰', '/uploads/member_taro.jpg', '#FED7AA', 11);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Menu, X, Heart } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
 import { useLang } from '../context/LangContext'
 
 function LangToggle({ compact = false }) {
@@ -67,11 +67,14 @@ export default function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2 group">
           <motion.div
-            className="w-10 h-10 rounded-full bg-maid flex items-center justify-center shadow-kawaii"
             whileHover={{ rotate: 10, scale: 1.1 }}
             transition={{ type: 'spring', stiffness: 400 }}
           >
-            <Heart className="w-5 h-5 text-white fill-white" />
+            <img
+              src="/uploads/logo.jpg"
+              alt="Maid Cafe DreamGarden"
+              className="w-10 h-10 object-contain drop-shadow-md"
+            />
           </motion.div>
           <span className="font-display italic font-bold text-xl md:text-2xl text-maid group-hover:text-maid-dark transition-colors">
             DreamGarden

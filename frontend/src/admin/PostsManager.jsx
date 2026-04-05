@@ -3,13 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Pencil, Trash2, Save, X, Loader, Eye, EyeOff, Upload } from 'lucide-react'
 import api from '../api/client'
 
-const EMPTY = { title: '', slug: '', excerpt: '', content: '', cover_image: '', published: false }
+const EMPTY = { title: '', title_en: '', slug: '', excerpt: '', excerpt_en: '', content: '', content_en: '', cover_image: '', published: false }
 
 function PostForm({ initial, onSave, onCancel }) {
   const [form, setForm]       = useState({ ...EMPTY, ...initial })
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
   const [uploading, setUploading] = useState(false)
+  const [langTab, setLangTab] = useState('de')
   const fileRef               = useRef()
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
@@ -60,32 +61,76 @@ function PostForm({ initial, onSave, onCancel }) {
       </div>
 
       <form onSubmit={submit} className="space-y-4">
-        <input
-          className="input-kawaii"
-          placeholder="Titel *"
-          value={form.title}
-          onChange={set('title')}
-          required
-        />
+        {/* Language tabs */}
+        <div className="flex gap-1 bg-gray-100 rounded-full p-1 w-fit">
+          {['de', 'en'].map((l) => (
+            <button
+              key={l}
+              type="button"
+              onClick={() => setLangTab(l)}
+              className={`px-4 py-1.5 rounded-full text-sm font-bold transition-all duration-200 ${
+                langTab === l ? 'bg-maid text-white shadow' : 'text-dusk/60 hover:text-maid'
+              }`}
+            >
+              {l === 'de' ? '🇩🇪 Deutsch' : '🇬🇧 English'}
+            </button>
+          ))}
+        </div>
+
+        {langTab === 'de' ? (
+          <>
+            <input
+              className="input-kawaii"
+              placeholder="Titel * (Deutsch)"
+              value={form.title}
+              onChange={set('title')}
+              required
+            />
+            <textarea
+              className="input-kawaii resize-none"
+              rows={2}
+              placeholder="Kurzbeschreibung (Excerpt) — Deutsch"
+              value={form.excerpt}
+              onChange={set('excerpt')}
+            />
+            <textarea
+              className="input-kawaii resize-y font-mono text-sm"
+              rows={12}
+              placeholder="Inhalt (HTML erlaubt) — Deutsch"
+              value={form.content}
+              onChange={set('content')}
+            />
+          </>
+        ) : (
+          <>
+            <input
+              className="input-kawaii"
+              placeholder="Title (English) — optional"
+              value={form.title_en}
+              onChange={set('title_en')}
+            />
+            <textarea
+              className="input-kawaii resize-none"
+              rows={2}
+              placeholder="Excerpt (English) — optional"
+              value={form.excerpt_en}
+              onChange={set('excerpt_en')}
+            />
+            <textarea
+              className="input-kawaii resize-y font-mono text-sm"
+              rows={12}
+              placeholder="Content (HTML allowed) — English. Falls back to German if empty."
+              value={form.content_en}
+              onChange={set('content_en')}
+            />
+          </>
+        )}
+
         <input
           className="input-kawaii"
           placeholder="Slug (auto generiert wenn leer)"
           value={form.slug}
           onChange={set('slug')}
-        />
-        <textarea
-          className="input-kawaii resize-none"
-          rows={2}
-          placeholder="Kurzbeschreibung (Excerpt)"
-          value={form.excerpt}
-          onChange={set('excerpt')}
-        />
-        <textarea
-          className="input-kawaii resize-y font-mono text-sm"
-          rows={12}
-          placeholder="Inhalt (HTML erlaubt)"
-          value={form.content}
-          onChange={set('content')}
         />
 
         {/* Cover image */}

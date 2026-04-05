@@ -39,10 +39,12 @@ function PostCard({ post, index }) {
               : (lang === 'en' ? 'Draft' : 'Entwurf')}
           </p>
           <h2 className="font-display text-xl font-bold text-dusk mb-3 group-hover:text-maid transition-colors leading-snug">
-            {post.title}
+            {lang === 'en' && post.title_en ? post.title_en : post.title}
           </h2>
-          {post.excerpt && (
-            <p className="text-sm text-dusk/60 line-clamp-3 mb-4 leading-relaxed">{post.excerpt}</p>
+          {(post.excerpt || post.excerpt_en) && (
+            <p className="text-sm text-dusk/60 line-clamp-3 mb-4 leading-relaxed">
+              {lang === 'en' && post.excerpt_en ? post.excerpt_en : post.excerpt}
+            </p>
           )}
           <span className="inline-flex items-center gap-1 text-sm font-bold text-maid group-hover:gap-2 transition-all duration-200">
             {t('blog', 'readMore')} <ChevronRight className="w-4 h-4" />

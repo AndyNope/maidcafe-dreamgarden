@@ -19,7 +19,7 @@ export default function BlogPost() {
     api.get(`/api/posts/${slug}`)
       .then(({ data }) => {
         setPost(data)
-        document.title = `${data.title} — Maid Café DreamGarden`
+        document.title = `${lang === 'en' && data.title_en ? data.title_en : data.title} — Maid Café DreamGarden`
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
@@ -95,20 +95,20 @@ export default function BlogPost() {
 
           {/* Title */}
           <h1 className="font-display italic text-3xl md:text-5xl font-bold text-dusk mb-6 leading-tight">
-            {post.title}
+            {lang === 'en' && post.title_en ? post.title_en : post.title}
           </h1>
 
-          {post.excerpt && (
+          {(post.excerpt || post.excerpt_en) && (
             <p className="text-lg text-dusk/60 mb-8 leading-relaxed border-l-4 border-sakura pl-4 italic">
-              {post.excerpt}
+              {lang === 'en' && post.excerpt_en ? post.excerpt_en : post.excerpt}
             </p>
           )}
 
           {/* Content — rendered as HTML (from a trusted CMS admin) */}
-          {post.content && (
+          {(post.content || post.content_en) && (
             <div
               className="prose-kawaii"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+              dangerouslySetInnerHTML={{ __html: lang === 'en' && post.content_en ? post.content_en : post.content }}
             />
           )}
 

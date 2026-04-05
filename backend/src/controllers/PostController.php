@@ -13,12 +13,12 @@ final class PostController
 
         if ($isAdmin) {
             $stmt = $this->db->query(
-                'SELECT id, title, slug, excerpt, cover_image, published, published_at, created_at, updated_at
+                'SELECT id, title, title_en, slug, excerpt, excerpt_en, cover_image, published, published_at, created_at, updated_at
                  FROM posts ORDER BY created_at DESC'
             );
         } else {
             $stmt = $this->db->query(
-                'SELECT id, title, slug, excerpt, cover_image, published_at, created_at
+                'SELECT id, title, title_en, slug, excerpt, excerpt_en, cover_image, published_at, created_at
                  FROM posts WHERE published = 1 ORDER BY published_at DESC'
             );
         }
@@ -58,15 +58,18 @@ final class PostController
         $slug = $this->uniqueSlug($data['slug'] ?: slugify($data['title']));
 
         $stmt = $this->db->prepare(
-            'INSERT INTO posts (title, slug, excerpt, content, cover_image, published, published_at)
-             VALUES (:title, :slug, :excerpt, :content, :cover_image, :published, :published_at)'
+            'INSERT INTO posts (title, title_en, slug, excerpt, excerpt_en, content, content_en, cover_image, published, published_at)
+             VALUES (:title, :title_en, :slug, :excerpt, :excerpt_en, :content, :content_en, :cover_image, :published, :published_at)'
         );
 
         $stmt->execute([
             'title'        => $data['title'],
+            'title_en'     => $data['title_en'],
             'slug'         => $slug,
             'excerpt'      => $data['excerpt'],
+            'excerpt_en'   => $data['excerpt_en'],
             'content'      => $data['content'],
+            'content_en'   => $data['content_en'],
             'cover_image'  => $data['cover_image'],
             'published'    => $data['published'] ? 1 : 0,
             'published_at' => $data['published'] ? date('Y-m-d H:i:s') : null,
@@ -86,17 +89,20 @@ final class PostController
         $slug = $this->uniqueSlug($data['slug'] ?: slugify($data['title']), $id);
 
         $stmt = $this->db->prepare(
-            'UPDATE posts SET title=:title, slug=:slug, excerpt=:excerpt, content=:content,
-             cover_image=:cover_image, published=:published,
+            'UPDATE posts SET title=:title, title_en=:title_en, slug=:slug, excerpt=:excerpt, excerpt_en=:excerpt_en,
+             content=:content, content_en=:content_en, cover_image=:cover_image, published=:published,
              published_at=IF(:published=1 AND published=0, NOW(), published_at)
              WHERE id=:id'
         );
 
         $stmt->execute([
             'title'       => $data['title'],
+            'title_en'    => $data['title_en'],
             'slug'        => $slug,
             'excerpt'     => $data['excerpt'],
+            'excerpt_en'  => $data['excerpt_en'],
             'content'     => $data['content'],
+            'content_en'  => $data['content_en'],
             'cover_image' => $data['cover_image'],
             'published'   => $data['published'] ? 1 : 0,
             'id'          => $id,
@@ -123,9 +129,12 @@ final class PostController
 
         return [
             'title'       => trim($body['title']),
+            'title_en'    => trim($body['title_en'] ?? ''),
             'slug'        => slugify(trim($body['slug'] ?? '')),
             'excerpt'     => trim($body['excerpt'] ?? ''),
+            'excerpt_en'  => trim($body['excerpt_en'] ?? ''),
             'content'     => trim($body['content'] ?? ''),
+            'content_en'  => trim($body['content_en'] ?? ''),
             'cover_image' => trim($body['cover_image'] ?? ''),
             'published'   => (bool)($body['published'] ?? false),
         ];

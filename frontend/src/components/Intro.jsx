@@ -136,18 +136,16 @@ export default function Intro() {
           <div className="relative z-10 text-center px-8 max-w-lg">
             {/* Logo ring */}
             <motion.div
-              className="mx-auto mb-6 w-28 h-28 rounded-full bg-white shadow-kawaii-lg border-4 border-maid flex items-center justify-center"
+              className="mx-auto mb-6 w-28 h-28 rounded-full bg-white shadow-kawaii-lg border-4 border-maid flex items-center justify-center overflow-hidden"
               initial={{ scale: 0, rotate: -30 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ delay: 0.3, type: 'spring', stiffness: 200, damping: 14 }}
             >
-              <svg viewBox="0 0 80 80" className="w-20 h-20" fill="none">
-                <circle cx="40" cy="40" r="36" fill="#FFEEF5" stroke="#FFB7D5" strokeWidth="3"/>
-                <text x="40" y="28" textAnchor="middle" fontSize="9" fill="#FF6B9D" fontFamily="Playfair Display" fontStyle="italic">Maid Café</text>
-                <text x="40" y="44" textAnchor="middle" fontSize="13" fill="#FF6B9D" fontFamily="Playfair Display" fontWeight="bold">Dream</text>
-                <text x="40" y="57" textAnchor="middle" fontSize="13" fill="#93C5FD" fontFamily="Playfair Display" fontWeight="bold">Garden</text>
-                <text x="40" y="67" textAnchor="middle" fontSize="6" fill="#FF6B9D" fontFamily="Noto Serif JP">メイドカフェ・ドリームガーデン</text>
-              </svg>
+              <img
+                src="/uploads/logo.jpg"
+                alt="Maid Cafe DreamGarden"
+                className="w-full h-full object-cover"
+              />
             </motion.div>
 
             {/* Subtitle JP */}
