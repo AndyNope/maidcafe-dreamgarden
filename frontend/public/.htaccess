@@ -1,0 +1,28 @@
+Options -Indexes
+RewriteEngine On
+
+# -- Sicherheit: Kein Lesezugriff auf PHP-Quellcode --
+RewriteRule ^src/ - [F,L]
+
+# -- DB-Credentials: diese Zeilen nach dem Upload anpassen --
+# SetEnv DB_HOST     localhost
+# SetEnv DB_NAME     dein_datenbankname
+# SetEnv DB_USER     dein_benutzer
+# SetEnv DB_PASSWORD dein_passwort
+
+# -- Authorization-Header an PHP weitergeben (Apache strippt ihn sonst) --
+RewriteCond %{HTTP:Authorization} ^(.+)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
+# -- /uploads/* direkt ausliefern --
+RewriteCond %{REQUEST_URI} ^/uploads/ [NC]
+RewriteRule ^ - [L]
+
+# -- /api/* → api/index.php (PHP-Backend) --
+RewriteCond %{REQUEST_URI} ^/api [NC]
+RewriteRule ^api/(.*)$ api/index.php [QSA,L]
+
+# -- React SPA: alle anderen Routen → index.html --
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.html [L]

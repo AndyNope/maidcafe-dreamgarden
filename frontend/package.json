@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "postbuild": "mkdir -p dist/api dist/src/controllers dist/uploads && cp ../backend/public/index.php dist/api/ && cp ../backend/public/.htaccess dist/api/ && cp -r ../backend/src/. dist/src/ && cp -rn ../uploads/. dist/uploads/ 2>/dev/null || true && echo '✓ Backend nach dist/ kopiert — httpdocs-Struktur ist bereit'",
     "preview": "vite preview"
   },
   "dependencies": {
