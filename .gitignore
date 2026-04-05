@@ -1,0 +1,14 @@
+# Git
+.env
+*.log
+
+# Uploads (keep structure, ignore files)
+backend/public/uploads/*
+!backend/public/uploads/.gitkeep
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# macOS
+.DS_Store

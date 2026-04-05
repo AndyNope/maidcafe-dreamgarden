@@ -1,0 +1,144 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Custom scrollbar ───────────────────────────────────────────────────── */
+::-webkit-scrollbar              { width: 8px; }
+::-webkit-scrollbar-track        { background: #FFEEF5; }
+::-webkit-scrollbar-thumb        { background: #FFB7D5; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover  { background: #FF6B9D; }
+
+/* ── Hide default cursor everywhere so custom cursor shows ──────────────── */
+* { cursor: none !important; }
+@media (hover: none) { * { cursor: auto !important; } }
+
+/* ── Base typography ────────────────────────────────────────────────────── */
+body {
+  @apply font-kawaii bg-dream text-dusk overflow-x-hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Lace border utility ────────────────────────────────────────────────── */
+.lace-top {
+  position: relative;
+}
+.lace-top::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 24px;
+  background:
+    radial-gradient(circle at 50% 0%, #FFF 12px, transparent 13px) top center / 24px 24px repeat-x,
+    radial-gradient(circle at 0% 50%, #FFF 6px, transparent 7px) left center  / 24px 12px repeat-x;
+  margin-top: -1px;
+}
+
+.lace-bottom {
+  position: relative;
+}
+.lace-bottom::after {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 24px;
+  background:
+    radial-gradient(circle at 50% 100%, #FFF 12px, transparent 13px) bottom center / 24px 24px repeat-x;
+  margin-bottom: -1px;
+}
+
+/* ── Stitch border (like maid dress seams) ──────────────────────────────── */
+.stitch-border {
+  border: 2px solid #FFB7D5;
+  box-shadow: inset 0 0 0 3px #FFF, inset 0 0 0 5px #FFB7D5;
+}
+
+/* ── Card base ──────────────────────────────────────────────────────────── */
+.card-kawaii {
+  @apply bg-white rounded-kawaii shadow-kawaii border border-sakura/30 transition-all duration-300;
+}
+.card-kawaii:hover {
+  @apply shadow-kawaii-lg -translate-y-1;
+}
+
+/* ── Shimmer button ─────────────────────────────────────────────────────── */
+.btn-shimmer {
+  background: linear-gradient(90deg, #FF6B9D 0%, #FFB7D5 40%, #FF6B9D 80%, #FFB7D5 100%);
+  background-size: 200% 100%;
+  @apply animate-shimmer;
+}
+
+/* ── Section title with bow ─────────────────────────────────────────────── */
+.section-title {
+  @apply font-display text-3xl md:text-4xl font-bold text-maid text-center relative pb-6;
+}
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 64px;
+  height: 4px;
+  background: linear-gradient(90deg, #FFB7D5, #FF6B9D, #93C5FD);
+  border-radius: 2px;
+}
+
+/* ── Ribbon tag ─────────────────────────────────────────────────────────── */
+.ribbon-tag {
+  @apply inline-block bg-maid text-white text-xs font-bold px-3 py-1 relative;
+  clip-path: polygon(0 0, 100% 0, 100% 70%, 50% 100%, 0 70%);
+}
+
+/* ── Price tag ──────────────────────────────────────────────────────────── */
+.price-tag {
+  @apply inline-flex items-center gap-1 bg-sky/30 text-sky-dark font-bold px-3 py-1 rounded-full text-sm;
+}
+
+/* ── Glass morphism variant ─────────────────────────────────────────────── */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 183, 213, 0.3);
+}
+
+/* ── Kawaii input ───────────────────────────────────────────────────────── */
+.input-kawaii {
+  @apply w-full px-4 py-3 rounded-2xl border-2 border-sakura focus:border-maid focus:outline-none
+         bg-white/80 text-dusk placeholder-sakura-dark/50 transition-all duration-200;
+}
+.input-kawaii:focus {
+  box-shadow: 0 0 0 4px rgba(255, 107, 157, 0.12);
+}
+
+/* ── Prose for blog content ─────────────────────────────────────────────── */
+.prose-kawaii {
+  @apply text-dusk leading-relaxed;
+}
+.prose-kawaii h2 {
+  @apply font-display text-2xl font-bold text-maid mt-8 mb-4;
+}
+.prose-kawaii h3 {
+  @apply font-display text-xl font-semibold text-maid-dark mt-6 mb-3;
+}
+.prose-kawaii p  { @apply mb-4; }
+.prose-kawaii ul { @apply list-disc ml-6 mb-4 space-y-1; }
+.prose-kawaii ol { @apply list-decimal ml-6 mb-4 space-y-1; }
+.prose-kawaii a  { @apply text-maid underline hover:text-maid-dark; }
+.prose-kawaii blockquote {
+  @apply border-l-4 border-maid pl-4 italic text-maid-dark/80 my-6;
+}
+
+/* ── Admin nav ──────────────────────────────────────────────────────────── */
+.admin-nav-link {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl text-white/70 hover:text-white
+         hover:bg-white/10 transition-all duration-200 font-medium;
+}
+.admin-nav-link.active {
+  @apply bg-white/20 text-white;
+}
+
+/* ── Responsive helpers ─────────────────────────────────────────────────── */
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+}
