@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Heart, Star, Loader } from 'lucide-react'
 import BowDivider from '../components/BowDivider'
 import api from '../api/client'
+import { useLang } from '../context/LangContext'
 
 const ROLE_LABEL = { maid: 'Maid', butler: 'Butler', manager: 'Manager' }
 const ROLE_COLOR = {
@@ -97,13 +98,14 @@ export default function Members() {
   const [members, setMembers] = useState([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter]   = useState('all')
+  const { t, lang }           = useLang()
 
   useEffect(() => {
-    document.title = 'Team — Maid Café DreamGarden'
+    document.title = t('members', 'title') + ' — Maid Café DreamGarden'
     api.get('/api/members')
       .then(({ data }) => setMembers(data))
       .finally(() => setLoading(false))
-  }, [])
+  }, [lang])
 
   const filtered = filter === 'all'
     ? members
@@ -133,9 +135,9 @@ export default function Members() {
           className="relative"
         >
           <p className="text-maid/60 font-japanese text-sm mb-2 tracking-widest">チーム</p>
-          <h1 className="section-title">Unser Team</h1>
+          <h1 className="section-title">{t('members', 'title')}</h1>
           <p className="text-dusk/60 mt-6 max-w-md mx-auto">
-            Lernt unsere {members.length} charmanten Maids und Butlers kennen — jede/r einzigartig und kawaii!
+            {t('members', 'subtitle')}
           </p>
         </motion.div>
       </div>
@@ -146,10 +148,10 @@ export default function Members() {
         {/* Filter tabs */}
         <div className="flex flex-wrap justify-center gap-2 mt-8 mb-10">
           {[
-            { key: 'all',     label: `Alle (${counts.all})` },
-            { key: 'maid',    label: `Maids (${counts.maid})` },
-            { key: 'butler',  label: `Butlers (${counts.butler})` },
-            ...(counts.manager > 0 ? [{ key: 'manager', label: `Manager (${counts.manager})` }] : []),
+            { key: 'all',     label: `${t('members', 'filterAll')} (${counts.all})` },
+            { key: 'maid',    label: `${t('members', 'maid')} (${counts.maid})` },
+            { key: 'butler',  label: `${t('members', 'butler')} (${counts.butler})` },
+            ...(counts.manager > 0 ? [{ key: 'manager', label: `${t('members', 'manager')} (${counts.manager})` }] : []),
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -173,7 +175,7 @@ export default function Members() {
 
         {!loading && filtered.length === 0 && (
           <div className="text-center py-20 text-dusk/50">
-            Kein Mitglied gefunden.
+            {t('members', 'empty')}
           </div>
         )}
 

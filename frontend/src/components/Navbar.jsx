@@ -2,18 +2,39 @@ import { useState, useEffect } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, Heart } from 'lucide-react'
+import { useLang } from '../context/LangContext'
 
-const links = [
-  { to: '/',        label: 'Home',     exact: true },
-  { to: '/menu',    label: 'Menü' },
-  { to: '/members', label: 'Maids & Butlers' },
-  { to: '/blog',    label: 'Blog' },
-]
+function LangToggle({ compact = false }) {
+  const { lang, setLang } = useLang()
+  return (
+    <button
+      onClick={() => setLang(lang === 'de' ? 'en' : 'de')}
+      className={`flex items-center gap-1 font-bold text-xs rounded-full border transition-all duration-200
+        ${compact
+          ? 'px-3 py-1.5 border-sakura/40 text-dusk/70 hover:border-maid hover:text-maid'
+          : 'px-3 py-1.5 border-sakura/40 text-dusk/70 hover:border-maid hover:text-maid'
+        }`}
+      title={lang === 'de' ? 'Switch to English' : 'Zu Deutsch wechseln'}
+    >
+      <span className={lang === 'de' ? 'text-maid font-extrabold' : 'opacity-40'}>DE</span>
+      <span className="opacity-30">|</span>
+      <span className={lang === 'en' ? 'text-maid font-extrabold' : 'opacity-40'}>EN</span>
+    </button>
+  )
+}
 
 export default function Navbar() {
   const [open, setOpen]       = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const location              = useLocation()
+  const { t }                 = useLang()
+
+  const links = [
+    { to: '/',        label: t('nav', 'home'),    exact: true },
+    { to: '/menu',    label: t('nav', 'menu') },
+    { to: '/members', label: t('nav', 'members') },
+    { to: '/blog',    label: t('nav', 'blog') },
+  ]
 
   useEffect(() => {
     setOpen(false)
@@ -87,6 +108,8 @@ export default function Navbar() {
             </NavLink>
           ))}
 
+          <LangToggle />
+
           <a
             href="https://ko-fi.com/maidcafedreamgarden"
             target="_blank"
@@ -98,13 +121,16 @@ export default function Navbar() {
         </nav>
 
         {/* Mobile burger */}
-        <button
-          className="md:hidden p-2 rounded-full text-maid hover:bg-maid/10 transition-colors"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={open ? 'Close menu' : 'Open menu'}
-        >
-          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="md:hidden flex items-center gap-2">
+          <LangToggle compact />
+          <button
+            className="p-2 rounded-full text-maid hover:bg-maid/10 transition-colors"
+            onClick={() => setOpen((v) => !v)}
+            aria-label={open ? 'Close menu' : 'Open menu'}
+          >
+            {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}

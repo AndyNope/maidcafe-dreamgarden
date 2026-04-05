@@ -1,18 +1,12 @@
 import { Link } from 'react-router-dom'
 import { Heart, Instagram, Facebook, Youtube, Coffee } from 'lucide-react'
+import { useLang } from '../context/LangContext'
 
 const socialLinks = [
   { href: 'https://www.instagram.com/maidcafe_dreamgarden/', icon: Instagram,  label: 'Instagram' },
   { href: 'https://www.facebook.com/DreamGardenMaidCafe',   icon: Facebook,   label: 'Facebook' },
   { href: 'https://www.youtube.com/channel/UClmqebIVpN9tXD7RoTbZoBA', icon: Youtube, label: 'YouTube' },
   { href: 'https://ko-fi.com/maidcafedreamgarden',          icon: Coffee,     label: 'Ko-fi' },
-]
-
-const navLinks = [
-  { to: '/',        label: 'Home' },
-  { to: '/menu',    label: 'Menü' },
-  { to: '/members', label: 'Team' },
-  { to: '/blog',    label: 'Blog' },
 ]
 
 // Simple TikTok icon as SVG since Lucide doesn't include it
@@ -25,6 +19,15 @@ function TikTokIcon({ className }) {
 }
 
 export default function Footer() {
+  const { t } = useLang()
+
+  const navLinks = [
+    { to: '/',        label: t('nav', 'home') },
+    { to: '/menu',    label: t('nav', 'menu') },
+    { to: '/members', label: t('nav', 'members') },
+    { to: '/blog',    label: t('nav', 'blog') },
+  ]
+
   return (
     <footer className="relative bg-dusk text-white/80 overflow-hidden">
       {/* Lace top */}
@@ -59,8 +62,8 @@ export default function Footer() {
               <span className="font-display italic text-xl font-bold text-sakura">DreamGarden</span>
             </div>
             <p className="text-white/60 text-sm leading-relaxed mb-4">
-              Ihr #swissmaidcafe — welcome to the dream garden.<br />
-              14 Maids, 3 Butlers · Since 2018
+              {t('footer', 'slogan')}<br />
+              {t('footer', 'follow')}: @maidcafe_dreamgarden
             </p>
             <div className="flex gap-3 flex-wrap">
               {socialLinks.map(({ href, icon: Icon, label }) => (

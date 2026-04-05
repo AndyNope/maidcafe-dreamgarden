@@ -1,6 +1,10 @@
 Options -Indexes
 RewriteEngine On
 
+# Pass Authorization header to PHP (Apache strips it by default)
+RewriteCond %{HTTP:Authorization} ^(.+)$
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%1]
+
 # Allow /uploads/ files through without rewrite
 RewriteCond %{REQUEST_URI} ^/uploads/ [NC]
 RewriteRule ^ - [L]

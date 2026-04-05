@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Coffee, UtensilsCrossed, Cake, Star, Loader } from 'lucide-react'
 import BowDivider from '../components/BowDivider'
 import api from '../api/client'
+import { useLang } from '../context/LangContext'
 
 const iconMap = {
   Cup:             (p) => <Coffee {...p} />,
@@ -53,7 +54,7 @@ function MenuItem({ item, index }) {
             )}
           </div>
           <span className="price-tag flex-shrink-0 whitespace-nowrap">
-            CHF {Number(item.price).toFixed(2)}
+            <span className="text-xs opacity-70 mr-0.5">CHF</span>{Number(item.price).toFixed(2)}
           </span>
         </div>
         {item.description && (
@@ -98,14 +99,15 @@ export default function Menu() {
   const [categories, setCategories] = useState([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState(null)
+  const { t, lang }                 = useLang()
 
   useEffect(() => {
-    document.title = 'Menü — Maid Café DreamGarden'
+    document.title = t('menu', 'title') + ' — Maid Café DreamGarden'
     api.get('/api/menu')
       .then(({ data }) => setCategories(data))
-      .catch(() => setError('Menü konnte nicht geladen werden.'))
+      .catch(() => setError(t('menu', 'empty')))
       .finally(() => setLoading(false))
-  }, [])
+  }, [lang])
 
   return (
     <div className="min-h-screen pt-24 pb-16">
@@ -124,9 +126,9 @@ export default function Menu() {
           className="relative"
         >
           <p className="text-maid/60 font-japanese text-sm mb-2 tracking-widest">メニュー</p>
-          <h1 className="section-title text-4xl md:text-5xl font-bold">Unser Menü</h1>
+          <h1 className="section-title text-4xl md:text-5xl font-bold">{t('menu', 'title')}</h1>
           <p className="text-dusk/60 mt-6 max-w-md mx-auto">
-            Handgemachte Spezialitäten mit Liebe zubereitet — von euren Maids für euch.
+            {t('menu', 'subtitle')}
           </p>
         </motion.div>
       </div>
@@ -146,7 +148,7 @@ export default function Menu() {
 
         {!loading && !error && categories.length === 0 && (
           <div className="text-center py-20 text-dusk/50">
-            Das Menü wird gerade liebevoll vorbereitet...
+            {t('menu', 'empty')}
           </div>
         )}
 
@@ -157,8 +159,7 @@ export default function Menu() {
         {/* Note */}
         <div className="mt-8 p-6 rounded-kawaii bg-petal/50 border border-sakura/30 text-center">
           <p className="text-dusk/60 text-sm">
-            Alle Preise in CHF inkl. MwSt. Das Menü kann je nach Event variieren.
-            Bei Allergien und Unverträglichkeiten bitte das Team ansprechen.
+            {t('menu', 'subtitle')} inkl. MwSt. Das Menü kann je nach Event variieren.
           </p>
         </div>
       </div>

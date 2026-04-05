@@ -4,12 +4,14 @@ import { motion } from 'framer-motion'
 import { ArrowLeft, Heart, Loader, Calendar } from 'lucide-react'
 import BowDivider from '../components/BowDivider'
 import api from '../api/client'
+import { useLang } from '../context/LangContext'
 
 export default function BlogPost() {
   const { slug }          = useParams()
   const [post, setPost]   = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]   = useState(false)
+  const { t, lang }       = useLang()
 
   useEffect(() => {
     setLoading(true)
@@ -35,12 +37,12 @@ export default function BlogPost() {
     return (
       <div className="min-h-screen pt-24 flex flex-col items-center justify-center gap-6">
         <Heart className="w-16 h-16 text-maid/20 fill-maid/10" />
-        <p className="text-dusk/50 text-lg text-center">Post nicht gefunden~</p>
+        <p className="text-dusk/50 text-lg text-center">{t('blogPost', 'notFound')}</p>
         <Link
           to="/blog"
           className="inline-flex items-center gap-2 px-6 py-3 bg-maid text-white font-bold rounded-full shadow-kawaii"
         >
-          <ArrowLeft className="w-4 h-4" /> Zurück zum Blog
+          <ArrowLeft className="w-4 h-4" /> {t('blogPost', 'back')}
         </Link>
       </div>
     )
@@ -68,7 +70,7 @@ export default function BlogPost() {
           to="/blog"
           className="inline-flex items-center gap-2 text-maid/60 hover:text-maid text-sm font-semibold mb-6 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Blog
+          <ArrowLeft className="w-4 h-4" /> {t('blogPost', 'back')}
         </Link>
 
         <BowDivider />
@@ -84,10 +86,10 @@ export default function BlogPost() {
             <Calendar className="w-4 h-4" />
             <time>
               {post.published_at
-                ? new Date(post.published_at).toLocaleDateString('de-CH', {
+                ? new Date(post.published_at).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-CH', {
                     day: '2-digit', month: 'long', year: 'numeric',
                   })
-                : 'Entwurf'}
+                : (lang === 'en' ? 'Draft' : 'Entwurf')}
             </time>
           </div>
 

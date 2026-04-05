@@ -43,6 +43,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    command: >
+      bash -c "mkdir -p /var/www/html/public/uploads
+               && chown -R www-data:www-data /var/www/html/public/uploads
+               && chmod 775 /var/www/html/public/uploads
+               && apache2-foreground"
 
   frontend:
     image: node:20-alpine

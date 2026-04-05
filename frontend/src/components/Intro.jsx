@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLang } from '../context/LangContext'
 
 const PETAL_COUNT = 18
 
@@ -57,6 +58,7 @@ export default function Intro() {
   const [leaving, setLeaving] = useState(false)
   const [showHearts, setShowHearts] = useState(false)
   const heartTimer = useRef(null)
+  const { t }     = useLang()
 
   useEffect(() => {
     const seen = sessionStorage.getItem('dg_intro_seen')
@@ -193,7 +195,7 @@ export default function Intro() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 2.0 }}
             >
-              Ihr #swissmaidcafe — serving you since 2018
+              {t('intro', 'line3')}
             </motion.p>
 
             {/* Enter button */}
@@ -206,7 +208,7 @@ export default function Intro() {
               whileHover={{ scale: 1.06 }}
               whileTap={{ scale: 0.96 }}
             >
-              <span className="relative z-10">Willkommen herein</span>
+              <span className="relative z-10">{t('intro', 'welcome')}</span>
               {/* Shimmer */}
               <span className="absolute inset-0 bg-white/20 translate-x-full group-hover:translate-x-[-200%] transition-transform duration-700 skew-x-12" />
             </motion.button>

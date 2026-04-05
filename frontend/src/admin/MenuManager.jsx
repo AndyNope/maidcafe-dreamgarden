@@ -76,8 +76,8 @@ function ItemForm({ initial, categories, onSave, onCancel }) {
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-dusk/40 text-sm font-medium">CHF</span>
-            <input type="number" step="0.05" min="0" className="input-kawaii pl-12" placeholder="Preis *"
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-dusk/50 text-xs font-bold pointer-events-none select-none bg-cream/80 pr-1">CHF</span>
+            <input type="number" step="0.05" min="0" className="input-kawaii pl-14" placeholder="0.00"
               value={form.price} onChange={set('price')} required />
           </div>
           <input type="number" min={0} className="input-kawaii" placeholder="Reihenfolge" value={form.sort_order} onChange={set('sort_order')} />

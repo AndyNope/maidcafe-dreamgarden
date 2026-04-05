@@ -91,7 +91,7 @@ body {
 
 /* ── Price tag ──────────────────────────────────────────────────────────── */
 .price-tag {
-  @apply inline-flex items-center gap-1 bg-sky/30 text-sky-dark font-bold px-3 py-1 rounded-full text-sm;
+  @apply inline-flex items-baseline gap-0.5 bg-dusk/10 text-dusk font-bold px-3 py-1 rounded-full text-sm tracking-tight;
 }
 
 /* ── Glass morphism variant ─────────────────────────────────────────────── */

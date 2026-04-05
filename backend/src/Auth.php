@@ -43,7 +43,11 @@ final class Auth
      */
     public function guard(): ?array
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        // Apache may pass the header under different keys depending on module setup
+        $header = $_SERVER['HTTP_AUTHORIZATION']
+               ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+               ?? (function_exists('getallheaders') ? (getallheaders()['Authorization'] ?? '') : '')
+               ?? '';
         if (!str_starts_with($header, 'Bearer ')) return null;
 
         $token = substr($header, 7);
