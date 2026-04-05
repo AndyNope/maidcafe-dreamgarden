@@ -147,8 +147,41 @@ final class MenuController
     public function destroyCategory(int $id): never
     {
         $this->auth->requireAuth();
-        $this->db->prepare('DELETE FROM menu_categories WHERE id = ?')->execute([$id]);
-        json_response(['message' => 'Deleted']);
+
+        // Prevent deleting the default fallback category
+        $stmt = $this->db->prepare('SELECT * FROM menu_categories WHERE id = ? LIMIT 1');
+        $stmt->execute([$id]);
+        $cat = $stmt->fetch();
+        if (!$cat) json_response(['error' => 'Not found'], 404);
+        if (trim((string)$cat['name']) === 'Uncategorized') {
+            json_response(['error' => 'Cannot delete default category'], 422);
+        }
+
+        $this->db->beginTransaction();
+        try {
+            // Ensure default category exists
+            $stmt = $this->db->prepare('SELECT id FROM menu_categories WHERE name = ? LIMIT 1');
+            $stmt->execute(['Uncategorized']);
+            $default = $stmt->fetchColumn();
+            if (!$default) {
+                $this->db->prepare('INSERT INTO menu_categories (name, name_jp, icon, sort_order) VALUES (?, ?, ?, ?)')
+                    ->execute(['Uncategorized', '', 'Tag', 9999]);
+                $default = (int)$this->db->lastInsertId();
+            }
+
+            // Reassign items to default category
+            $upd = $this->db->prepare('UPDATE menu_items SET category_id = ? WHERE category_id = ?');
+            $upd->execute([$default, $id]);
+
+            // Delete the category
+            $this->db->prepare('DELETE FROM menu_categories WHERE id = ?')->execute([$id]);
+
+            $this->db->commit();
+            json_response(['message' => 'Deleted', 'reassigned_to' => $default]);
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            json_response(['error' => 'Could not delete category'], 500);
+        }
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

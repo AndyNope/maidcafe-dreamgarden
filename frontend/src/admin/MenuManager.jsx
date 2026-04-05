@@ -296,7 +296,7 @@ export default function MenuManager() {
               initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}>
               <Trash2 className="w-10 h-10 text-rose-400 mx-auto mb-4" />
               <p className="font-bold text-dusk mb-2">Item löschen?</p>
-              <p className="text-dusk/50 text-sm mb-6">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+              <p className="text-dusk/50 text-sm mb-6">Beim Löschen wird diese Kategorie entfernt und alle zugehörigen Items werden der Kategorie "Uncategorized" zugewiesen.</p>
               <div className="flex gap-3 justify-center">
                 <button onClick={() => removeItem(deleteItem)} className="px-6 py-2.5 bg-rose-500 text-white font-bold rounded-full hover:bg-rose-600 transition-colors">Löschen</button>
                 <button onClick={() => setDeleteItem(null)} className="px-6 py-2.5 bg-gray-100 text-dusk font-bold rounded-full hover:bg-gray-200 transition-colors">Abbrechen</button>
