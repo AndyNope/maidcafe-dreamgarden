@@ -5,6 +5,7 @@ import { Heart, Star, Users, BookOpen, Coffee, Instagram, ChevronRight } from 'l
 import BowDivider from '../components/BowDivider'
 import SakuraPetals from '../components/SakuraPetals'
 import api from '../api/client'
+import { useLang } from '../context/LangContext'
 
 const fadeUp = {
   hidden:  { opacity: 0, y: 32 },
@@ -31,13 +32,14 @@ function StatCard({ icon: Icon, value, label, color }) {
 }
 
 function BlogCard({ post }) {
+  const { lang, t } = useLang()
   return (
     <motion.article variants={fadeUp} className="card-kawaii overflow-hidden group">
       {post.cover_image ? (
         <div className="h-44 overflow-hidden">
           <img
             src={post.cover_image}
-            alt={post.title}
+            alt={lang === 'en' && post.title_en ? post.title_en : post.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         </div>
@@ -48,17 +50,21 @@ function BlogCard({ post }) {
       )}
       <div className="p-5">
         <p className="text-xs text-maid/60 font-medium mb-1">
-          {post.published_at ? new Date(post.published_at).toLocaleDateString('de-CH') : ''}
+          {post.published_at
+            ? new Date(post.published_at).toLocaleDateString(lang === 'en' ? 'en-GB' : 'de-CH')
+            : ''}
         </p>
         <h3 className="font-display text-lg font-bold text-dusk mb-2 line-clamp-2 group-hover:text-maid transition-colors">
-          {post.title}
+          {lang === 'en' && post.title_en ? post.title_en : post.title}
         </h3>
-        <p className="text-sm text-dusk/60 line-clamp-2 mb-4">{post.excerpt}</p>
+        <p className="text-sm text-dusk/60 line-clamp-2 mb-4">
+          {lang === 'en' && post.excerpt_en ? post.excerpt_en : post.excerpt}
+        </p>
         <Link
           to={`/blog/${post.slug}`}
           className="inline-flex items-center gap-1 text-sm font-bold text-maid hover:gap-2 transition-all duration-200"
         >
-          Weiterlesen <ChevronRight className="w-4 h-4" />
+          {t('home', 'readMore')} <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
     </motion.article>
@@ -67,11 +73,12 @@ function BlogCard({ post }) {
 
 export default function Home() {
   const [posts, setPosts] = useState([])
+  const { lang, t }       = useLang()
 
   useEffect(() => {
     document.title = 'Maid Café DreamGarden — Home'
     api.get('/api/posts').then(({ data }) => setPosts(Array.isArray(data) ? data.slice(0, 3) : [])).catch(() => {})
-  }, [])
+  }, [lang])
 
   return (
     <div className="min-h-screen">
@@ -101,8 +108,8 @@ export default function Home() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3, type: 'spring', stiffness: 120 }}
           >
-            Maid Café<br />
-            <span className="text-sky-dark">Dream Garden</span>
+            {t('home', 'heroTitle')}<br />
+            <span className="text-sky-dark">{t('home', 'heroSubtitle')}</span>
           </motion.h1>
 
           <motion.p
@@ -111,9 +118,7 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            Euer #swissmaidcafe — Welcome to the dream garden.
-            <br className="hidden md:block" />
-            14 Maids, 3 Butlers — serving you since 2018.
+            {t('home', 'heroTagline')}
           </motion.p>
 
           <motion.div
@@ -126,13 +131,13 @@ export default function Home() {
               to="/menu"
               className="px-8 py-3.5 bg-maid text-white font-bold rounded-full shadow-kawaii hover:shadow-kawaii-lg hover:bg-maid-dark transition-all duration-200"
             >
-              Unser Menü
+              {t('home', 'heroBtn')}
             </Link>
             <Link
               to="/members"
               className="px-8 py-3.5 bg-white text-maid font-bold rounded-full shadow-kawaii hover:shadow-kawaii-lg hover:bg-petal transition-all duration-200 border border-sakura"
             >
-              Unser Team
+              {t('home', 'heroBtn2')}
             </Link>
           </motion.div>
 
@@ -157,10 +162,10 @@ export default function Home() {
           viewport={{ once: true, margin: '-60px' }}
           className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8"
         >
-          <StatCard icon={Users}    value="17"   label="Maids & Butlers" color="#FF6B9D" />
-          <StatCard icon={Star}     value="2018" label="Gegründet"       color="#93C5FD" />
-          <StatCard icon={Coffee}   value="100+" label="Events"          color="#C4B5FD" />
-          <StatCard icon={Heart}    value="968"  label="Follower"        color="#FFB7D5" />
+          <StatCard icon={Users}  value="17"   label={t('home', 'statsMembers')}  color="#FF6B9D" />
+          <StatCard icon={Star}   value="2018" label={t('home', 'statsFounded')}  color="#93C5FD" />
+          <StatCard icon={Coffee} value="100+" label={t('home', 'statsEvents')}   color="#C4B5FD" />
+          <StatCard icon={Heart}  value="968"  label={t('home', 'statsFollower')} color="#FFB7D5" />
         </motion.div>
       </section>
 
@@ -182,15 +187,13 @@ export default function Home() {
             variants={stagger}
           >
             <motion.h2 variants={fadeUp} className="section-title mb-6">
-              Willkommen im Dream Garden
+              {t('home', 'aboutTitle')}
             </motion.h2>
             <motion.p variants={fadeUp} className="text-dusk/80 text-lg max-w-2xl mx-auto mb-6 leading-relaxed">
-              Wir sind ein Schweizer Maid Café und bringen den Charme der japanischen Pop-Kultur mit
-              liebevollen Performances, köstlichen Spezialitäten und unvergesslichen Erlebnissen zu euch.
+              {t('home', 'aboutText')}
             </motion.p>
             <motion.p variants={fadeUp} className="text-dusk/60 text-base max-w-xl mx-auto">
-              Jedes Event ist einzigartig — mit Spielen, Maid-Performances, Fotosessions und kleinen
-              kulinarischen Überraschungen. Moe Moe Kyun~!
+              {t('home', 'aboutText2')}
             </motion.p>
             <motion.div variants={fadeUp} className="mt-8 flex justify-center gap-4 flex-wrap">
               <a
@@ -219,9 +222,9 @@ export default function Home() {
         <BowDivider color="#93C5FD" />
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { to: '/menu',    icon: Coffee,    title: 'Unser Menü',         desc: 'Entdeckt unsere kawaii Speisen und Getränke.',     color: '#FFB7D5' },
-            { to: '/members', icon: Users,     title: 'Maids & Butlers',    desc: 'Lernt unser charmantes Team kennen.',             color: '#93C5FD' },
-            { to: '/blog',    icon: BookOpen,  title: 'Blog',               desc: 'Neuigkeiten, Behind-the-Scenes und mehr.',        color: '#DDD6FE' },
+            { to: '/menu',    icon: Coffee,   title: t('home', 'linkMenu'),    desc: t('home', 'linkMenuDesc'),    color: '#FFB7D5' },
+            { to: '/members', icon: Users,    title: t('home', 'linkMembers'), desc: t('home', 'linkMembersDesc'), color: '#93C5FD' },
+            { to: '/blog',    icon: BookOpen, title: t('home', 'linkBlog'),    desc: t('home', 'linkBlogDesc'),    color: '#DDD6FE' },
           ].map(({ to, icon: Icon, title, desc, color }) => (
             <Link key={to} to={to}>
               <motion.div
@@ -252,7 +255,7 @@ export default function Home() {
       {posts.length > 0 && (
         <section className="py-16 px-4 bg-dream">
           <div className="max-w-5xl mx-auto">
-            <h2 className="section-title mb-10">Neueste Posts</h2>
+            <h2 className="section-title mb-10">{t('home', 'blogTitle')}</h2>
             <motion.div
               className="grid grid-cols-1 md:grid-cols-3 gap-6"
               variants={stagger}
@@ -269,7 +272,7 @@ export default function Home() {
                 to="/blog"
                 className="inline-flex items-center gap-2 px-8 py-3 bg-maid text-white font-bold rounded-full shadow-kawaii hover:bg-maid-dark transition-all duration-200"
               >
-                Alle Posts <ChevronRight className="w-4 h-4" />
+                {t('home', 'blogBtn')} <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
           </div>

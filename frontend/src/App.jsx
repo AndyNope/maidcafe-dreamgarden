@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from './context/AuthContext'
+import { useLang } from './context/LangContext'
 import CustomCursor from './components/Cursor'
 import Intro from './components/Intro'
 import Navbar from './components/Navbar'
@@ -21,9 +23,40 @@ function ProtectedRoute({ children }) {
   return token ? children : <Navigate to="/admin/login" replace />
 }
 
+/** Soft frosted overlay that flashes when the language is switched */
+function LangTransitionOverlay() {
+  const { lang }           = useLang()
+  const [active, setActive] = useState(false)
+  const firstRender         = useRef(true)
+
+  useEffect(() => {
+    if (firstRender.current) { firstRender.current = false; return }
+    setActive(true)
+    const id = setTimeout(() => setActive(false), 350)
+    return () => clearTimeout(id)
+  }, [lang])
+
+  if (!active) return null
+  return (
+    <div
+      aria-hidden
+      style={{
+        position:   'fixed',
+        inset:      0,
+        zIndex:     9999,
+        pointerEvents: 'none',
+        background: 'rgba(255,238,245,0.55)',
+        backdropFilter: 'blur(4px)',
+        animation:  'langFlash 0.35s ease forwards',
+      }}
+    />
+  )
+}
+
 export default function App() {
   return (
     <>
+      <LangTransitionOverlay />
       <CustomCursor />
       <Routes>
         {/* Public site */}

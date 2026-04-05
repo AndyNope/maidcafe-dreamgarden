@@ -54,6 +54,12 @@ export const translations = {
       linkBlog:      'Blog & News',
       linkInsta:     'Instagram',
       readMore:      'Weiterlesen',
+      statsFounded:     'Gegründet',
+      statsEvents:      'Events',
+      statsFollower:    'Follower',
+      linkMenuDesc:     'Entdeckt unsere kawaii Speisen und Getränke.',
+      linkMembersDesc:  'Lernt unser charmantes Team kennen.',
+      linkBlogDesc:     'Neuigkeiten, Behind-the-Scenes und mehr.',
     },
 
     // ── Menu ────────────────────────────────────────────────────────────
@@ -149,6 +155,12 @@ export const translations = {
       linkBlog:      'Blog & News',
       linkInsta:     'Instagram',
       readMore:      'Read more',
+      statsFounded:     'Founded',
+      statsEvents:      'Events',
+      statsFollower:    'Followers',
+      linkMenuDesc:     'Discover our kawaii food and drinks.',
+      linkMembersDesc:  'Meet our charming team.',
+      linkBlogDesc:     'News, behind-the-scenes and more.',
     },
 
     // ── Menu ────────────────────────────────────────────────────────────

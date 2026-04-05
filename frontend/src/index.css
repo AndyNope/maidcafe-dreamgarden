@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Language switch flash animation ────────────────────────────────────── */
+@keyframes langFlash {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 /* ── Custom scrollbar ───────────────────────────────────────────────────── */
 ::-webkit-scrollbar              { width: 8px; }
 ::-webkit-scrollbar-track        { background: #FFEEF5; }
