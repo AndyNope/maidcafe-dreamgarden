@@ -103,7 +103,7 @@ export default function Members() {
   useEffect(() => {
     document.title = t('members', 'title') + ' — Maid Café DreamGarden'
     api.get('/api/members')
-      .then(({ data }) => setMembers(data))
+      .then(({ data }) => setMembers(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false))
   }, [lang])
 

@@ -104,7 +104,7 @@ export default function Menu() {
   useEffect(() => {
     document.title = t('menu', 'title') + ' — Maid Café DreamGarden'
     api.get('/api/menu')
-      .then(({ data }) => setCategories(data))
+      .then(({ data }) => setCategories(Array.isArray(data) ? data : []))
       .catch(() => setError(t('menu', 'empty')))
       .finally(() => setLoading(false))
   }, [lang])

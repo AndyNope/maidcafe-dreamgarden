@@ -1,10 +1,13 @@
 Options -Indexes
 RewriteEngine On
+RewriteBase /
 
 # -- Sicherheit: Kein Lesezugriff auf PHP-Quellcode --
 RewriteRule ^src/ - [F,L]
 
-# -- DB-Credentials: diese Zeilen nach dem Upload anpassen --
+# ============================================================
+# DB-Credentials: HIER anpassen bevor du hochlädst!
+# ============================================================
 # SetEnv DB_HOST     localhost
 # SetEnv DB_NAME     dein_datenbankname
 # SetEnv DB_USER     dein_benutzer

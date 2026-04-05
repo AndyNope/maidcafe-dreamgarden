@@ -70,7 +70,7 @@ export default function Home() {
 
   useEffect(() => {
     document.title = 'Maid Café DreamGarden — Home'
-    api.get('/api/posts').then(({ data }) => setPosts(data.slice(0, 3))).catch(() => {})
+    api.get('/api/posts').then(({ data }) => setPosts(Array.isArray(data) ? data.slice(0, 3) : [])).catch(() => {})
   }, [])
 
   return (

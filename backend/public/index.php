@@ -29,7 +29,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 // ── Bootstrap ────────────────────────────────────────────────────────────────
-$db     = Database::getInstance();
+set_exception_handler(function (Throwable $e) {
+    http_response_code(500);
+    echo json_encode(['error' => 'Server error: ' . $e->getMessage()], JSON_UNESCAPED_UNICODE);
+    exit;
+});
+
+try {
+    $db = Database::getInstance();
+} catch (Throwable $e) {
+    http_response_code(503);
+    echo json_encode(['error' => 'Database unavailable. Check DB credentials in .htaccess or .env'], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 $auth   = new Auth($db);
 $router = new Router();
 

@@ -63,7 +63,7 @@ export default function Blog() {
   useEffect(() => {
     document.title = t('blog', 'title') + ' — Maid Café DreamGarden'
     api.get('/api/posts')
-      .then(({ data }) => setPosts(data))
+      .then(({ data }) => setPosts(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false))
   }, [lang])
 
