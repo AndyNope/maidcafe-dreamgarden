@@ -25,6 +25,13 @@ export function AuthProvider({ children }) {
     const userObj = { username: payload.user, role: payload.role }
     localStorage.setItem('dg_user', JSON.stringify(userObj))
     setUser(userObj)
+    // Also set a non-HttpOnly cookie as a compatibility fallback for servers
+    // where Authorization headers are not forwarded to PHP (common on nginx)
+    try {
+      document.cookie = `dg_token=${data.token}; path=/; max-age=${60 * 60 * 24 * 14}` // 14 days
+    } catch (e) {
+      // ignore cookie set errors in restrictive environments
+    }
   }, [])
 
   const logout = useCallback(() => {
@@ -32,6 +39,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('dg_user')
     setToken(null)
     setUser(null)
+    try { document.cookie = 'dg_token=; path=/; max-age=0' } catch (e) {}
   }, [])
 
   return (

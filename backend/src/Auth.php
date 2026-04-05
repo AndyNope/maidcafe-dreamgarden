@@ -48,7 +48,18 @@ final class Auth
                ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
                ?? (function_exists('getallheaders') ? (getallheaders()['Authorization'] ?? '') : '')
                ?? '';
-        if (!str_starts_with($header, 'Bearer ')) return null;
+
+        // If the Authorization header is not available (common with nginx+PHP-FPM
+        // when fastcgi_param HTTP_AUTHORIZATION is not set), allow a compatibility
+        // fallback from a cookie named `dg_token` set by the frontend.
+        if (!str_starts_with($header, 'Bearer ')) {
+            $cookieToken = $_COOKIE['dg_token'] ?? null;
+            if ($cookieToken) {
+                $token = $cookieToken;
+                return JWT::decode($token, $this->secret);
+            }
+            return null;
+        }
 
         $token = substr($header, 7);
         return JWT::decode($token, $this->secret);
