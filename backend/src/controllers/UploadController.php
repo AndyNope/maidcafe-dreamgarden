@@ -10,7 +10,12 @@ final class UploadController
 
     public function __construct(private Auth $auth)
     {
-        $this->uploadDir = ROOT_DIR . '/public/uploads/';
+        // Use the site root `uploads/` directory so files are served at `/uploads/...`
+        // When `index.php` lives in `api/` during our dist deployment, ROOT_DIR points
+        // to the site root (httpdocs). Writing to ROOT_DIR.'/uploads' ensures the
+        // public URL `/uploads/...` maps correctly and avoids storing files under
+        // `public/uploads` which previously caused mismatches on prod.
+        $this->uploadDir = ROOT_DIR . '/uploads/';
     }
 
     public function upload(): never
