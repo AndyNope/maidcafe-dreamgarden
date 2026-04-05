@@ -76,4 +76,115 @@ final class Auth
         }
         return $payload;
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Staff auth (members table)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function staffLogin(string $email, string $password): ?string
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, name, role, staff_password_hash FROM members
+              WHERE staff_email = ? AND staff_password_hash IS NOT NULL AND active = 1
+              LIMIT 1'
+        );
+        $stmt->execute([strtolower($email)]);
+        $member = $stmt->fetch();
+
+        if (!$member || !password_verify($password, $member['staff_password_hash'])) return null;
+
+        $this->db->prepare('UPDATE members SET staff_last_login = NOW() WHERE id = ?')
+                 ->execute([$member['id']]);
+
+        return JWT::encode([
+            'sub'  => $member['id'],
+            'name' => $member['name'],
+            'role' => $member['role'],
+            'type' => 'staff',
+        ], $this->secret);
+    }
+
+    public function staffGuard(): ?array
+    {
+        $payload = $this->guard();
+        if ($payload && ($payload['type'] ?? '') === 'staff') {
+            return $payload;
+        }
+        // Check dedicated staff cookie
+        $cookieToken = $_COOKIE['dg_staff_token'] ?? null;
+        if ($cookieToken) {
+            $decoded = JWT::decode($cookieToken, $this->secret);
+            if ($decoded && ($decoded['type'] ?? '') === 'staff') {
+                return $decoded;
+            }
+        }
+        return null;
+    }
+
+    public function requireStaff(): array
+    {
+        $payload = $this->staffGuard();
+        if ($payload === null) {
+            json_response(['error' => 'Staff authentication required'], 401);
+        }
+        return $payload;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Customer auth (customers table)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public function customerLogin(string $email, string $password): ?string
+    {
+        $stmt = $this->db->prepare(
+            'SELECT id, first_name, last_name, email_verified FROM customers
+              WHERE email = ? LIMIT 1'
+        );
+        $stmt->execute([strtolower($email)]);
+        $customer = $stmt->fetch();
+
+        // Fetch hash separately to avoid timing differences
+        if (!$customer) {
+            password_verify($password, '$2y$10$dummyhashtopreventtimingattacks');
+            return null;
+        }
+
+        $hashStmt = $this->db->prepare('SELECT password_hash FROM customers WHERE id = ?');
+        $hashStmt->execute([$customer['id']]);
+        $hash = $hashStmt->fetchColumn();
+
+        if (!password_verify($password, $hash)) return null;
+        if (!$customer['email_verified']) return 'unverified';
+
+        return JWT::encode([
+            'sub'        => $customer['id'],
+            'first_name' => $customer['first_name'],
+            'type'       => 'customer',
+        ], $this->secret);
+    }
+
+    public function customerGuard(): ?array
+    {
+        $payload = $this->guard();
+        if ($payload && ($payload['type'] ?? '') === 'customer') {
+            return $payload;
+        }
+        $cookieToken = $_COOKIE['dg_customer_token'] ?? null;
+        if ($cookieToken) {
+            $decoded = JWT::decode($cookieToken, $this->secret);
+            if ($decoded && ($decoded['type'] ?? '') === 'customer') {
+                return $decoded;
+            }
+        }
+        return null;
+    }
+
+    public function requireCustomer(): array
+    {
+        $payload = $this->customerGuard();
+        if ($payload === null) {
+            json_response(['error' => 'Customer authentication required'], 401);
+        }
+        return $payload;
+    }
 }

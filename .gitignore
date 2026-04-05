@@ -13,3 +13,6 @@ frontend/dist/
 # macOS
 .DS_Store
 temp/
+
+# Ignore Composer vendor directory
+/backend/vendor/

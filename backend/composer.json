@@ -1,0 +1,16 @@
+{
+    "name": "dreamgarden/maidcafe-backend",
+    "require": {
+        "php": ">=8.2",
+        "stripe/stripe-php": "^13.0",
+        "phpmailer/phpmailer": "^6.9"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}

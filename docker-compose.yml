@@ -32,22 +32,30 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-maidcafe_secret}
       JWT_SECRET: ${JWT_SECRET:-change_this_in_production_please}
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
-      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:-}
       APP_ENV: development
       CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}
+      STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL:-http://localhost:5173/shop/success}
+      STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL:-http://localhost:5173/cart}
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      SMTP_FROM: noreply@dreamgarden.ch
+      SMTP_NAME: Dream Garden Maid Café
+      APP_URL: ${APP_URL:-http://localhost:5173}
     volumes:
       - ./backend:/var/www/html
-      - ./uploads:/var/www/html/public/uploads
+      - ./uploads:/var/www/html/uploads
     ports:
       - "8080:80"
     depends_on:
       db:
         condition: service_healthy
-    command: >
-      bash -c "mkdir -p /var/www/html/public/uploads
-               && chown -R www-data:www-data /var/www/html/public/uploads
-               && chmod 775 /var/www/html/public/uploads
-               && apache2-foreground"
+    command: |
+      bash -c "composer install --no-dev --optimize-autoloader --no-interaction --working-dir=/var/www/html && mkdir -p /var/www/html/uploads && chown -R www-data:www-data /var/www/html/uploads && chmod 775 /var/www/html/uploads && apache2-foreground"
 
   frontend:
     image: node:20-alpine
@@ -59,8 +67,15 @@ services:
     command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
     environment:
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
+      VITE_STRIPE_PUBLISHABLE_KEY: ${VITE_STRIPE_PUBLISHABLE_KEY:-pk_test_placeholder}
     depends_on:
       - api
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI  →  http://localhost:8025
 
 volumes:
   db_data:

@@ -1,14 +1,18 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Heart, LayoutDashboard, BookOpen, Users, UtensilsCrossed, LogOut, Menu, X } from 'lucide-react'
+import { Heart, LayoutDashboard, BookOpen, Users, UtensilsCrossed, LogOut, Menu, X, ShoppingBag, BarChart2, UserCog, Table2 } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { motion, AnimatePresence } from 'framer-motion'
 
 const navItems = [
-  { to: '/admin',         label: 'Dashboard',  icon: LayoutDashboard, end: true },
-  { to: '/admin/posts',   label: 'Blog Posts', icon: BookOpen },
-  { to: '/admin/members', label: 'Members',    icon: Users },
-  { to: '/admin/menu',    label: 'Menü',       icon: UtensilsCrossed },
+  { to: '/admin',          label: 'Dashboard',   icon: LayoutDashboard, end: true },
+  { to: '/admin/posts',    label: 'Blog Posts',  icon: BookOpen },
+  { to: '/admin/members',  label: 'Members',     icon: Users },
+  { to: '/admin/menu',     label: 'Menü',        icon: UtensilsCrossed },
+  { to: '/admin/products', label: 'Shop',        icon: ShoppingBag },
+  { to: '/admin/tables',   label: 'Tische',      icon: Table2 },
+  { to: '/admin/users',    label: 'Benutzer',    icon: UserCog },
+  { to: '/admin/revenue',  label: 'Umsatz',      icon: BarChart2 },
 ]
 
 export default function AdminLayout() {

@@ -85,6 +85,183 @@ CREATE TABLE IF NOT EXISTS menu_items (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ─────────────────────────────────────────────
+-- Shop products (merch)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS products (
+    id              INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    name            VARCHAR(200) NOT NULL,
+    name_en         VARCHAR(200),
+    description     TEXT,
+    description_en  TEXT,
+    price           DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    stock           INT UNSIGNED DEFAULT 0,
+    delivery_days   TINYINT UNSIGNED DEFAULT 7,
+    delivery_cost   DECIMAL(10,2) DEFAULT 0.00,
+    image           VARCHAR(500),
+    available       TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order      SMALLINT UNSIGNED DEFAULT 0,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_available (available, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────
+-- Customer accounts (public shop users)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS customers (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    email          VARCHAR(200) NOT NULL UNIQUE,
+    password_hash  VARCHAR(255) NOT NULL,
+    first_name     VARCHAR(100),
+    last_name      VARCHAR(100),
+    email_verified TINYINT(1) NOT NULL DEFAULT 0,
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT UNSIGNED NOT NULL,
+    token       VARCHAR(64)  NOT NULL UNIQUE,
+    expires_at  TIMESTAMP    NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS password_resets (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT UNSIGNED NOT NULL,
+    token       VARCHAR(64)  NOT NULL UNIQUE,
+    expires_at  TIMESTAMP    NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS customer_addresses (
+    id          INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT UNSIGNED NOT NULL,
+    label       VARCHAR(100) DEFAULT 'Home',
+    first_name  VARCHAR(100),
+    last_name   VARCHAR(100),
+    street      VARCHAR(200),
+    city        VARCHAR(100),
+    postal_code VARCHAR(20),
+    country     VARCHAR(100) DEFAULT 'Schweiz',
+    is_default  TINYINT(1) DEFAULT 0,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────
+-- Shop orders
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS shop_orders (
+    id                   INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    customer_id          INT UNSIGNED,
+    status               ENUM('pending','paid','processing','shipped','delivered','cancelled') NOT NULL DEFAULT 'pending',
+    shipping_first_name  VARCHAR(100),
+    shipping_last_name   VARCHAR(100),
+    shipping_street      VARCHAR(200),
+    shipping_city        VARCHAR(100),
+    shipping_postal_code VARCHAR(20),
+    shipping_country     VARCHAR(100) DEFAULT 'Schweiz',
+    subtotal             DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    delivery_cost        DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    total                DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    stripe_payment_intent VARCHAR(255),
+    notes                TEXT,
+    created_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at           TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
+    INDEX idx_customer (customer_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS shop_order_items (
+    id           INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    order_id     INT UNSIGNED NOT NULL,
+    product_id   INT UNSIGNED,
+    product_name VARCHAR(200),
+    unit_price   DECIMAL(10,2) NOT NULL,
+    quantity     INT UNSIGNED NOT NULL DEFAULT 1,
+    FOREIGN KEY (order_id)   REFERENCES shop_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products(id)   ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────
+-- Staff auth (Maid / Butler / Manager / Helfer login)
+-- ─────────────────────────────────────────────
+ALTER TABLE members
+    ADD COLUMN IF NOT EXISTS staff_email        VARCHAR(200) NULL,
+    ADD COLUMN IF NOT EXISTS staff_password_hash VARCHAR(255) NULL,
+    ADD COLUMN IF NOT EXISTS staff_last_login    TIMESTAMP   NULL;
+
+-- Extend role ENUM to include helfer
+ALTER TABLE members
+    MODIFY COLUMN role ENUM('maid','butler','manager','helfer') NOT NULL DEFAULT 'maid';
+
+-- ─────────────────────────────────────────────
+-- Restaurant tables
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS restaurant_tables (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    number     VARCHAR(20) NOT NULL,
+    name       VARCHAR(100),
+    seats      TINYINT UNSIGNED DEFAULT 4,
+    active     TINYINT(1) NOT NULL DEFAULT 1,
+    sort_order SMALLINT UNSIGNED DEFAULT 0,
+    INDEX idx_active (active)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────
+-- Restaurant / event orders
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS event_orders (
+    id         INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    table_id   INT UNSIGNED,
+    staff_id   INT UNSIGNED,
+    status     ENUM('open','closed','cancelled') NOT NULL DEFAULT 'open',
+    notes      TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (table_id) REFERENCES restaurant_tables(id) ON DELETE SET NULL,
+    FOREIGN KEY (staff_id) REFERENCES members(id)           ON DELETE SET NULL,
+    INDEX idx_status (status),
+    INDEX idx_table  (table_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS event_order_items (
+    id             INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_order_id INT UNSIGNED NOT NULL,
+    menu_item_id   INT UNSIGNED,
+    item_name      VARCHAR(200) NOT NULL,
+    item_category  ENUM('food','drink','other') NOT NULL DEFAULT 'food',
+    unit_price     DECIMAL(10,2) NOT NULL,
+    quantity       INT UNSIGNED NOT NULL DEFAULT 1,
+    assigned_guest VARCHAR(100),
+    status         ENUM('pending','preparing','ready','served','cancelled') NOT NULL DEFAULT 'pending',
+    cancel_note    VARCHAR(300),
+    FOREIGN KEY (event_order_id) REFERENCES event_orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (menu_item_id)   REFERENCES menu_items(id)   ON DELETE SET NULL,
+    INDEX idx_order  (event_order_id),
+    INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────
+-- Restaurant bills (split payment)
+-- ─────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS event_bills (
+    id                    INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    event_order_id        INT UNSIGNED NOT NULL,
+    guest_name            VARCHAR(100),
+    total                 DECIMAL(10,2) NOT NULL,
+    payment_method        ENUM('cash','stripe','twint','other') DEFAULT 'stripe',
+    payment_status        ENUM('pending','paid') NOT NULL DEFAULT 'pending',
+    stripe_payment_intent VARCHAR(255),
+    stripe_checkout_url   VARCHAR(1000),
+    created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (event_order_id) REFERENCES event_orders(id) ON DELETE CASCADE,
+    INDEX idx_order (event_order_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ─────────────────────────────────────────────
 -- Seed data
 -- ─────────────────────────────────────────────
 
