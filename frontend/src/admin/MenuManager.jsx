@@ -113,6 +113,8 @@ export default function MenuManager() {
   const [newCat, setNewCat]       = useState(false)
   const [catForm, setCatForm]     = useState({ ...EMPTY_CAT })
   const [savingCat, setSavingCat] = useState(false)
+  const [editCat, setEditCat]     = useState(null)
+  const [deleteCat, setDeleteCat] = useState(null)
 
   useEffect(() => {
     document.title = 'Menü — DreamGarden CMS'
@@ -148,13 +150,31 @@ export default function MenuManager() {
     e.preventDefault()
     setSavingCat(true)
     try {
-      await api.post('/api/menu/categories', catForm)
+      if (editCat) {
+        await api.put(`/api/menu/categories/${editCat.id}`, catForm)
+        setEditCat(null)
+      } else {
+        await api.post('/api/menu/categories', catForm)
+      }
       setNewCat(false)
       setCatForm({ ...EMPTY_CAT })
       load()
     } finally {
       setSavingCat(false)
     }
+  }
+
+  const startEditCategory = (cat) => {
+    setEditCat(cat)
+    setCatForm({ name: cat.name || '', name_jp: cat.name_jp || '', icon: cat.icon || '', sort_order: cat.sort_order || 0 })
+    setNewCat(true)
+    setEditItem(null)
+  }
+
+  const removeCategory = async (id) => {
+    await api.delete(`/api/menu/categories/${id}`)
+    setDeleteCat(null)
+    load()
   }
 
   const toggle = (id) => setExpanded((e) => ({ ...e, [id]: !e[id] }))
@@ -212,17 +232,20 @@ export default function MenuManager() {
           {menu.map((cat) => (
             <div key={cat.id} className="bg-white rounded-kawaii shadow-kawaii border border-gray-100 overflow-hidden">
               {/* Category header */}
-              <button
-                onClick={() => toggle(cat.id)}
-                className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-gray-50 transition-colors"
-              >
-                {expanded[cat.id]
-                  ? <ChevronDown className="w-4 h-4 text-maid flex-shrink-0" />
-                  : <ChevronRight className="w-4 h-4 text-dusk/40 flex-shrink-0" />}
-                <span className="font-bold text-dusk flex-1">{cat.name}</span>
-                {cat.name_jp && <span className="text-xs text-dusk/40 font-japanese">{cat.name_jp}</span>}
-                <span className="text-xs bg-gray-100 text-dusk/50 px-2 py-0.5 rounded-full">{cat.items.length} Items</span>
-              </button>
+              <div className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-gray-50 transition-colors">
+                <button onClick={() => toggle(cat.id)} className="flex-1 flex items-center gap-3 text-left bg-transparent border-0 p-0">
+                  {expanded[cat.id]
+                    ? <ChevronDown className="w-4 h-4 text-maid flex-shrink-0" />
+                    : <ChevronRight className="w-4 h-4 text-dusk/40 flex-shrink-0" />}
+                  <span className="font-bold text-dusk flex-1">{cat.name}</span>
+                  {cat.name_jp && <span className="text-xs text-dusk/40 font-japanese">{cat.name_jp}</span>}
+                  <span className="text-xs bg-gray-100 text-dusk/50 px-2 py-0.5 rounded-full">{cat.items.length} Items</span>
+                </button>
+                <div className="flex gap-2">
+                  <button onClick={() => startEditCategory(cat)} className="p-1.5 rounded-lg text-dusk/40 hover:text-maid hover:bg-maid/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => setDeleteCat(cat.id)} className="p-1.5 rounded-lg text-dusk/40 hover:text-rose-500 hover:bg-rose-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                </div>
+              </div>
 
               {/* Items */}
               <AnimatePresence>
