@@ -25,7 +25,13 @@ export default function OrderView() {
   useEffect(() => {
     Promise.all([
       load(),
-      api.get('/api/menu', { headers }).then(r => setMenu(r.data)),
+      api.get('/api/menu', { headers }).then(r => {
+        // /api/menu returns [{id, name, items:[...]}, ...] — flatten to item list
+        const flat = r.data.flatMap(cat =>
+          (cat.items || []).map(item => ({ ...item, category_id: cat.id }))
+        )
+        setMenu(flat)
+      }),
       api.get('/api/menu/categories', { headers }).then(r => { setCats(r.data); setSelCat(r.data[0]?.id || null) }),
     ]).finally(() => setLoading(false))
   }, [id])
