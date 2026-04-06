@@ -188,18 +188,29 @@ final class EventOrderController
         foreach ($bills as $billData) {
             $guestName = substr(trim($billData['guest_name'] ?? 'Gast'), 0, 100);
             $itemIds   = array_map('intval', $billData['item_ids'] ?? []);
+            $customTotal = isset($billData['custom_total']) ? (float)$billData['custom_total'] : null;
 
-            if (empty($itemIds)) continue;
+            // Allow bills without item_ids when custom_total is provided (e.g. equal split)
+            if (empty($itemIds) && $customTotal === null) continue;
 
-            // Calculate total from selected items
-            $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
-            $stmt = $this->db->prepare(
-                "SELECT unit_price, quantity FROM event_order_items
-                  WHERE id IN ($placeholders) AND event_order_id = ?"
-            );
-            $stmt->execute([...$itemIds, $id]);
-            $rows  = $stmt->fetchAll();
-            $total = array_reduce($rows, fn($carry, $r) => $carry + $r['unit_price'] * $r['quantity'], 0.0);
+            if (!empty($itemIds)) {
+                // Calculate total from selected items
+                $placeholders = implode(',', array_fill(0, count($itemIds), '?'));
+                $stmt = $this->db->prepare(
+                    "SELECT unit_price, quantity FROM event_order_items
+                      WHERE id IN ($placeholders) AND event_order_id = ?"
+                );
+                $stmt->execute([...$itemIds, $id]);
+                $rows  = $stmt->fetchAll();
+                $total = array_reduce($rows, fn($carry, $r) => $carry + $r['unit_price'] * $r['quantity'], 0.0);
+            } else {
+                $total = 0.0;
+            }
+
+            // custom_total overrides the item-based calculation (used for equal splits)
+            if ($customTotal !== null) {
+                $total = $customTotal;
+            }
 
             // Generate Stripe Checkout link for this guest's bill
             $checkoutUrl  = null;

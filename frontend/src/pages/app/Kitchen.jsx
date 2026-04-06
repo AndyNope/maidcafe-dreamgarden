@@ -50,8 +50,14 @@ export default function Kitchen() {
     load()
   }
 
-  const toggleSoldOut = async (menuItemId, currentlyAvailable) => {
-    await api.put(`/api/kitchen/menu-items/${menuItemId}/sold-out`, { available: currentlyAvailable ? 0 : 1 }, { headers })
+  const toggleSoldOut = async (orderItemId, menuItemId) => {
+    // Cancel the existing order item AND mark the menu item sold out in one call
+    await api.put(`/api/kitchen/items/${orderItemId}/status`, {
+      status: 'cancelled',
+      cancel_note: 'Ausverkauft',
+      mark_sold_out: true,
+      menu_item_id: menuItemId,
+    }, { headers })
     load()
   }
 
@@ -163,8 +169,8 @@ function KitchenColumn({ title, items, color, onUpdate, onCancelClick, toggleSol
               <button onClick={() => onCancelClick(item.id)} style={{ background: 'rgba(244,67,54,.3)', color: '#f44336', border: 'none', borderRadius: 20, padding: '8px 12px', cursor: 'pointer', fontSize: 13 }}>✕</button>
             </div>
             {item.menu_item_id && (
-              <button onClick={() => toggleSoldOut(item.menu_item_id, true)} style={{ marginTop: 6, width: '100%', background: 'rgba(255,255,255,.05)', color: '#f0a500', border: 'none', borderRadius: 10, padding: '6px', cursor: 'pointer', fontSize: 12 }}>
-                ❌ Ausverkauft markieren
+              <button onClick={() => toggleSoldOut(item.id, item.menu_item_id)} style={{ marginTop: 6, width: '100%', background: 'rgba(255,255,255,.05)', color: '#f0a500', border: 'none', borderRadius: 10, padding: '6px', cursor: 'pointer', fontSize: 12 }}>
+                ❌ Ausverkauft → stornieren
               </button>
             )}
           </div>

@@ -332,60 +332,87 @@ function SplitBill({ order, token, onReload }) {
   const headers = { Authorization: `Bearer ${token}` }
 
   const [bills, setBills]        = useState([])
-  const [mode, setMode]          = useState('total')  // 'total' | 'split'
-  const [guests, setGuests]      = useState(['Gast 1', 'Gast 2'])
-  const [assignments, setAssign] = useState({})
+  const [mode, setMode]          = useState('even')   // 'even' | 'manual'
+  const [guestCount, setGuestCount] = useState(2)     // for equal split
+  const [guests, setGuests]      = useState([])       // for manual mode
+  const [assignments, setAssign] = useState({})       // itemId → guestLabel
   const [newGuest, setNewGuest]  = useState('')
   const [loading, setLoading]    = useState(false)
+  const [submitted, setSubmitted] = useState(false)   // prevent double-submit
   const [error, setError]        = useState('')
 
   const activeItems = order.items.filter(i => i.status !== 'cancelled')
   const tableTotal  = activeItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
+  const perPerson   = guestCount > 0 ? tableTotal / guestCount : tableTotal
 
   const reloadBills = () =>
     api.get(`/api/app/orders/${order.id}/bills`, { headers }).then(r => setBills(r.data))
 
   useEffect(() => {
     reloadBills()
+    // Pre-fill manual assignments from assigned_guest stored on items
     const init = {}
     activeItems.forEach(i => { if (i.assigned_guest) init[i.id] = i.assigned_guest })
     setAssign(init)
   }, [order.id])
 
   const addGuest = () => {
-    if (newGuest.trim()) { setGuests(g => [...g, newGuest.trim()]); setNewGuest('') }
+    const label = newGuest.trim() || `Gast ${guests.length + 1}`
+    setGuests(g => [...g, label])
+    setNewGuest('')
   }
 
-  const createSingleBill = async () => {
-    setLoading(true); setError('')
+  const removeGuest = (label) =>
+    setGuests(g => g.filter(x => x !== label))
+
+  const createEvenBills = async () => {
+    if (submitted || loading) return
+    setLoading(true); setSubmitted(true); setError('')
     try {
-      await api.post(`/api/app/orders/${order.id}/bills`, {
-        bills: [{ guest_name: 'Tischrechnung', item_ids: activeItems.map(i => i.id) }]
-      }, { headers })
+      const share = Math.round((tableTotal / guestCount) * 100) / 100
+      const bills = Array.from({ length: guestCount }, (_, i) => ({
+        guest_name: `Gast ${i + 1}`,
+        item_ids: [],
+        custom_total: i === guestCount - 1
+          ? Math.round((tableTotal - share * (guestCount - 1)) * 100) / 100  // last gets rounding diff
+          : share,
+      }))
+      await api.post(`/api/app/orders/${order.id}/bills`, { bills }, { headers })
       await reloadBills()
       onReload()
     } catch {
-      setError('Fehler beim Erstellen der Rechnung.')
+      setError('Fehler beim Erstellen der Rechnungen.')
+      setSubmitted(false)
     } finally {
       setLoading(false)
     }
   }
 
-  const createSplitBills = async () => {
-    setLoading(true); setError('')
+  const createManualBills = async () => {
+    if (submitted || loading) return
+    if (guests.length === 0) { setError('Bitte mindestens einen Gast hinzufügen.'); return }
+    setLoading(true); setSubmitted(true); setError('')
     try {
       const billMap = {}
+      // Build per-guest item list
       activeItems.forEach(item => {
-        const g = assignments[item.id] || 'Unzugeordnet'
-        if (!billMap[g]) billMap[g] = []
-        billMap[g].push(item.id)
+        const g = assignments[item.id]
+        if (g) {
+          if (!billMap[g]) billMap[g] = []
+          billMap[g].push(item.id)
+        }
       })
+      // Collect unassigned items into a "Tisch"-bill if any
+      const unassigned = activeItems.filter(i => !assignments[i.id]).map(i => i.id)
+      if (unassigned.length > 0) billMap['Tisch'] = unassigned
+
       const payload = Object.entries(billMap).map(([guest_name, item_ids]) => ({ guest_name, item_ids }))
       await api.post(`/api/app/orders/${order.id}/bills`, { bills: payload }, { headers })
       await reloadBills()
       onReload()
     } catch {
       setError('Fehler beim Erstellen der Rechnungen.')
+      setSubmitted(false)
     } finally {
       setLoading(false)
     }
@@ -457,14 +484,14 @@ function SplitBill({ order, token, onReload }) {
         </div>
       )}
 
-      {/* Create bills (only if none exist yet) */}
+      {/* Create bills — only when none exist yet */}
       {bills.length === 0 && (
         activeItems.length === 0
           ? <p className="text-center py-8 text-dusk/40 text-sm">Keine Artikel zum Abrechnen.</p>
           : <>
               {/* Mode toggle */}
               <div className="flex rounded-kawaii border border-sakura/40 overflow-hidden bg-white shadow-kawaii">
-                {[['total', '📄 Gesamtrechnung'], ['split', '👥 Nach Gast aufteilen']].map(([key, label]) => (
+                {[['even', '⚖️ Gleichmässig'], ['manual', '🏷️ Nach Artikel']].map(([key, label]) => (
                   <button key={key} onClick={() => setMode(key)}
                     className={`flex-1 py-3 text-sm font-bold transition-colors ${
                       mode === key ? 'bg-maid text-white' : 'text-dusk/60 hover:bg-sakura/10'
@@ -474,65 +501,131 @@ function SplitBill({ order, token, onReload }) {
                 ))}
               </div>
 
-              {/* Total mode */}
-              {mode === 'total' && (
-                <div className="space-y-3">
-                  <p className="text-sm text-dusk/50 text-center">
-                    Eine Rechnung über <strong className="text-dusk">CHF {tableTotal.toFixed(2)}</strong> für den ganzen Tisch.
-                  </p>
+              {/* ── Equal split ── */}
+              {mode === 'even' && (
+                <div className="space-y-4">
+                  <p className="text-sm text-dusk/50 text-center">Rechnung gleichmässig aufteilen — Gäste bleiben anonym.</p>
+
+                  {/* Guest count stepper */}
+                  <div className="bg-white rounded-kawaii shadow-kawaii border border-sakura/20 p-5">
+                    <p className="text-xs text-dusk/50 mb-3 font-medium">Anzahl Personen</p>
+                    <div className="flex items-center justify-center gap-6">
+                      <button onClick={() => setGuestCount(n => Math.max(1, n - 1))}
+                        className="w-11 h-11 rounded-full bg-sakura/40 text-dusk font-bold hover:bg-sakura transition-colors flex items-center justify-center">
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="text-5xl font-display font-bold text-dusk w-16 text-center">{guestCount}</span>
+                      <button onClick={() => setGuestCount(n => Math.min(20, n + 1))}
+                        className="w-11 h-11 rounded-full bg-maid text-white font-bold hover:bg-maid-dark transition-colors flex items-center justify-center">
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <p className="text-center text-dusk/50 text-sm mt-4">
+                      = <strong className="text-dusk text-lg">CHF {perPerson.toFixed(2)}</strong> pro Person
+                    </p>
+                  </div>
+
                   {error && <p className="text-rose-500 text-sm text-center">{error}</p>}
-                  <button onClick={createSingleBill} disabled={loading}
-                    className="w-full py-4 rounded-kawaii bg-maid text-white font-bold shadow-kawaii hover:bg-maid-dark transition-colors text-base disabled:opacity-50 flex items-center justify-center gap-2">
+                  <button onClick={createEvenBills} disabled={loading || submitted}
+                    className="w-full py-4 rounded-kawaii bg-maid text-white font-bold shadow-kawaii hover:bg-maid-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                     {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
-                    Rechnung erstellen
+                    {guestCount}× CHF {perPerson.toFixed(2)} erstellen
                   </button>
                 </div>
               )}
 
-              {/* Split mode */}
-              {mode === 'split' && (
+              {/* ── Manual per-item ── */}
+              {mode === 'manual' && (
                 <div className="space-y-4">
+                  <p className="text-sm text-dusk/50 text-center">Artikel Personen zuordnen — Gäste bleiben anonym.</p>
+
+                  {/* Add guest */}
                   <div className="flex gap-2">
                     <input value={newGuest} onChange={e => setNewGuest(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && addGuest()}
-                      placeholder="Gast hinzufügen…" className="flex-1 input-kawaii text-sm" />
+                      placeholder={`Gast ${guests.length + 1} hinzufügen…`}
+                      className="flex-1 input-kawaii text-sm" />
                     <button onClick={addGuest}
-                      className="px-4 py-2 rounded-2xl bg-maid text-white font-bold hover:bg-maid-dark transition-colors">
+                      className="px-4 py-2 rounded-2xl bg-maid text-white font-bold hover:bg-maid-dark transition-colors flex-shrink-0">
                       <Plus className="w-4 h-4" />
                     </button>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {guests.map(g => (
-                      <span key={g} className="bg-sakura/40 text-dusk text-sm font-bold px-3 py-1 rounded-full">{g}</span>
-                    ))}
-                  </div>
+                  {/* Guest chips */}
+                  {guests.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {guests.map(g => (
+                        <span key={g}
+                          className="bg-sakura/40 text-dusk text-sm font-bold px-3 py-1 rounded-full flex items-center gap-1.5">
+                          {g}
+                          <button onClick={() => removeGuest(g)}
+                            className="text-dusk/40 hover:text-rose-500 transition-colors leading-none">×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
-                  <div className="space-y-2">
-                    {activeItems.map(item => (
-                      <div key={item.id}
-                        className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-kawaii border border-sakura/20">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-dusk text-sm">
-                            {item.item_name} <span className="text-dusk/40">× {item.quantity}</span>
-                          </p>
-                          <p className="text-maid text-xs font-bold">CHF {(item.unit_price * item.quantity).toFixed(2)}</p>
+                  {guests.length === 0 && (
+                    <p className="text-center text-xs text-dusk/30 py-2">
+                      Gäste hinzufügen, dann Artikel zuordnen.
+                    </p>
+                  )}
+
+                  {/* Item → guest assignment */}
+                  {guests.length > 0 && (
+                    <div className="space-y-2">
+                      {activeItems.map(item => (
+                        <div key={item.id}
+                          className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-kawaii border border-sakura/20">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-dusk text-sm">
+                              {item.item_name} <span className="text-dusk/40">× {item.quantity}</span>
+                            </p>
+                            <p className="text-maid text-xs font-bold">
+                              CHF {(item.unit_price * item.quantity).toFixed(2)}
+                            </p>
+                          </div>
+                          <select value={assignments[item.id] || ''}
+                            onChange={e => setAssign(a => ({ ...a, [item.id]: e.target.value }))}
+                            className="border border-sakura/40 rounded-xl px-3 py-2 text-sm text-dusk bg-white focus:border-maid outline-none flex-shrink-0">
+                            <option value="">Nicht zugeordnet</option>
+                            {guests.map(g => <option key={g} value={g}>{g}</option>)}
+                          </select>
                         </div>
-                        <select value={assignments[item.id] || ''}
-                          onChange={e => setAssign(a => ({ ...a, [item.id]: e.target.value }))}
-                          className="border border-sakura/40 rounded-xl px-3 py-2 text-sm text-dusk bg-white focus:border-maid outline-none">
-                          <option value="">Nicht zugeordnet</option>
-                          {guests.map(g => <option key={g} value={g}>{g}</option>)}
-                        </select>
+                      ))}
+
+                      {/* Preview per-guest subtotals */}
+                      <div className="bg-sakura/10 rounded-2xl p-3 space-y-1">
+                        {guests.map(g => {
+                          const gItems = activeItems.filter(i => assignments[i.id] === g)
+                          const sub = gItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
+                          return (
+                            <div key={g} className="flex justify-between text-sm">
+                              <span className="text-dusk font-medium">{g}</span>
+                              <span className="text-maid font-bold">CHF {sub.toFixed(2)}</span>
+                            </div>
+                          )
+                        })}
+                        {(() => {
+                          const unSub = activeItems
+                            .filter(i => !assignments[i.id])
+                            .reduce((s, i) => s + i.unit_price * i.quantity, 0)
+                          return unSub > 0
+                            ? <div className="flex justify-between text-sm">
+                                <span className="text-dusk/50">Nicht zugeordnet</span>
+                                <span className="text-dusk/50">CHF {unSub.toFixed(2)}</span>
+                              </div>
+                            : null
+                        })()}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
 
                   {error && <p className="text-rose-500 text-sm text-center">{error}</p>}
-                  <button onClick={createSplitBills} disabled={loading}
+                  <button onClick={createManualBills} disabled={loading || submitted || guests.length === 0}
                     className="w-full py-4 rounded-kawaii bg-maid text-white font-bold shadow-kawaii hover:bg-maid-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                     {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Users className="w-5 h-5" />}
-                    Rechnungen aufteilen
+                    Rechnungen erstellen
                   </button>
                 </div>
               )}
