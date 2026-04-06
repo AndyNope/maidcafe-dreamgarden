@@ -236,6 +236,7 @@ CREATE TABLE IF NOT EXISTS event_order_items (
     unit_price     DECIMAL(10,2) NOT NULL,
     quantity       INT UNSIGNED NOT NULL DEFAULT 1,
     assigned_guest VARCHAR(100),
+    notes          VARCHAR(300),
     status         ENUM('pending','preparing','ready','served','cancelled') NOT NULL DEFAULT 'pending',
     cancel_note    VARCHAR(300),
     FOREIGN KEY (event_order_id) REFERENCES event_orders(id) ON DELETE CASCADE,

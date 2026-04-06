@@ -35,6 +35,7 @@ import ProductsManager from './admin/ProductsManager'
 import Revenue from './admin/Revenue'
 import UserManager from './admin/UserManager'
 import TablesManager from './admin/TablesManager'
+import StripeSettings from './admin/StripeSettings'
 
 import { useStaffAuth } from './context/StaffAuthContext'
 
@@ -139,6 +140,7 @@ export default function App() {
               <Route path="revenue" element={<Revenue />} />
               <Route path="users" element={<UserManager />} />
               <Route path="tables" element={<TablesManager />} />
+              <Route path="stripe" element={<StripeSettings />} />
             </Route>
           </Routes>
         </CartProvider>

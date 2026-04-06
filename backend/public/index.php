@@ -202,6 +202,7 @@ $router->delete('/api/admin/staff/{id}/credentials',        fn($p) => $userMgrCt
 // ── Admin settings: menu default category ───────────────────────────────────
 $router->get('/api/admin/settings/menu/default_category', fn() => $settingsCtrl->getDefaultCategory());
 $router->put('/api/admin/settings/menu/default_category', fn() => $settingsCtrl->setDefaultCategory());
+$router->get('/api/admin/settings/stripe/status',         fn() => $settingsCtrl->stripeStatus());
 $router->put(   '/api/admin/members/{id}/role',             fn($p) => $userMgrCtrl->updateMemberRole((int)$p['id']));
 
 // ── File upload ───────────────────────────────────────────────────────────────

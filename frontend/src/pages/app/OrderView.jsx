@@ -22,6 +22,12 @@ export default function OrderView() {
 
   const load = () => api.get(`/api/app/orders/${id}`, { headers }).then(r => setOrder(r.data))
 
+  // Auto-refresh order every 20s so kitchen status changes are visible
+  useEffect(() => {
+    const interval = setInterval(load, 20_000)
+    return () => clearInterval(interval)
+  }, [id, token])
+
   useEffect(() => {
     Promise.all([
       load(),

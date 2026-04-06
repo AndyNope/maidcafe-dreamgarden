@@ -129,10 +129,11 @@ export default function MenuManager() {
       api.get('/api/menu'),
       api.get('/api/admin/settings/menu/default_category').catch(() => ({ data: { default_category: null } }))
     ]).then(([menuRes, defRes]) => {
-      setMenu(menuRes.data)
+      const cats = menuRes.data
+      setMenu(cats)
       setDefaultCatId(defRes.data.default_category?.id || null)
-      if (data.length > 0 && Object.keys(expanded).length === 0) {
-        setExpanded({ [data[0].id]: true })
+      if (cats.length > 0 && Object.keys(expanded).length === 0) {
+        setExpanded({ [cats[0].id]: true })
       }
     }).finally(() => setLoading(false))
   }

@@ -6,6 +6,27 @@ final class SettingsController
 {
     public function __construct(private PDO $db, private Auth $auth) {}
 
+    /** GET /api/admin/settings/stripe/status — check if Stripe is configured */
+    public function stripeStatus(): never
+    {
+        $this->auth->requireAuth();
+        $key = $_ENV['STRIPE_SECRET_KEY'] ?? getenv('STRIPE_SECRET_KEY') ?: '';
+        $webhookSecret = $_ENV['STRIPE_WEBHOOK_SECRET'] ?? getenv('STRIPE_WEBHOOK_SECRET') ?: '';
+        $pubKey = $_ENV['STRIPE_PUBLISHABLE_KEY'] ?? getenv('STRIPE_PUBLISHABLE_KEY') ?: '';
+
+        $isLive      = str_starts_with($key, 'sk_live_');
+        $isTest      = str_starts_with($key, 'sk_test_') && $key !== 'sk_test_placeholder';
+        $configured  = $isLive || $isTest;
+        $webhookOk   = !empty($webhookSecret) && $webhookSecret !== 'whsec_placeholder';
+
+        json_response([
+            'configured'        => $configured,
+            'mode'              => $isLive ? 'live' : ($isTest ? 'test' : 'not_set'),
+            'webhook_configured'=> $webhookOk,
+            'publishable_key'   => $configured ? ($pubKey ?: null) : null,
+        ]);
+    }
+
     /** GET /api/admin/settings/menu/default_category */
     public function getDefaultCategory(): never
     {

@@ -128,9 +128,9 @@ final class EventOrderController
 
             $this->db->prepare(
                 'INSERT INTO event_order_items
-                 (event_order_id, menu_item_id, item_name, item_category, unit_price, quantity, assigned_guest, notes)
-                 VALUES (?,?,?,?,?,?,?,?)'
-            )->execute([$id, $menuId ?: null, $itemName, $itemCat, $unitPrice, $qty, $guest, $notes]);
+                 (event_order_id, menu_item_id, item_name, item_category, unit_price, quantity, assigned_guest)
+                 VALUES (?,?,?,?,?,?,?)'
+            )->execute([$id, $menuId ?: null, $itemName, $itemCat, $unitPrice, $qty, $guest]);
         }
 
         json_response($this->getOrder($id));
