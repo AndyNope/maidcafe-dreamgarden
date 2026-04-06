@@ -108,6 +108,7 @@ export default function MenuManager() {
   const [menu, setMenu]       = useState([])
   const [loading, setLoading] = useState(true)
   const [defaultCatId, setDefaultCatId] = useState(null)
+  const [settingDefault, setSettingDefault] = useState(false)
   const [editItem, setEditItem]   = useState(null)
   const [deleteItem, setDeleteItem] = useState(null)
   const [expanded, setExpanded]   = useState({})
@@ -248,9 +249,9 @@ export default function MenuManager() {
                 </button>
                 <div className="flex gap-2 items-center">
                   {defaultCatId === cat.id ? (
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Default</span>
+                    <span title="Default category" className="text-xs bg-maid text-white px-2 py-0.5 rounded-full">Default</span>
                   ) : (
-                    <button onClick={async () => { await api.put('/api/admin/settings/menu/default_category', { id: cat.id }); setDefaultCatId(cat.id) }} className="text-xs bg-gray-100 text-dusk px-2 py-0.5 rounded-full hover:bg-lavender/20">Set Default</button>
+                    <button disabled={settingDefault} onClick={async () => { setSettingDefault(true); try { await api.put('/api/admin/settings/menu/default_category', { id: cat.id }); setDefaultCatId(cat.id) } finally { setSettingDefault(false) } }} className="text-xs bg-gray-100 text-dusk px-2 py-0.5 rounded-full hover:bg-lavender/20">Set Default</button>
                   )}
                   <button onClick={() => startEditCategory(cat)} className="p-1.5 rounded-lg text-dusk/40 hover:text-maid hover:bg-maid/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
                   <button onClick={() => setDeleteCat(cat.id)} className="p-1.5 rounded-lg text-dusk/40 hover:text-rose-500 hover:bg-rose-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
