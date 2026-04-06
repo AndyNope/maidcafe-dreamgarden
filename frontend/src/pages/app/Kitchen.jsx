@@ -6,6 +6,12 @@ import { useStaffAuth } from '../../context/StaffAuthContext'
 const STATUS_COLOR = { pending: '#f0a500', preparing: '#2196f3', ready: '#4caf50', served: '#aaa', cancelled: '#f44336' }
 const STATUS_LABEL = { pending: 'Ausstehend', preparing: 'Zubereitung', ready: '✅ Bereit', served: 'Serviert', cancelled: 'Storniert' }
 
+// Returns elapsed minutes since a timestamp string
+const ageMinutes = (createdAt) => {
+  if (!createdAt) return 0
+  return Math.floor((Date.now() - new Date(createdAt).getTime()) / 60_000)
+}
+
 const NEXT_STATUS = {
   pending:   ['preparing', 'cancelled'],
   preparing: ['ready', 'cancelled'],
@@ -120,13 +126,28 @@ function KitchenColumn({ title, items, color, onUpdate, onCancelClick, toggleSol
       </div>
       <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 10, maxHeight: '70vh', overflowY: 'auto' }}>
         {items.length === 0 && <p style={{ color: '#555', textAlign: 'center', padding: 16, fontSize: 14 }}>Nichts hier</p>}
-        {items.map(item => (
-          <div key={item.id} style={{ background: '#0f3460', borderRadius: 12, padding: 14 }}>
+        {items.map(item => {
+          const age    = ageMinutes(item.created_at)
+          const urgent = age >= 15
+          const warn   = age >= 8 && age < 15
+          const cardBg = urgent ? '#3b0a0a' : warn ? '#2a1e00' : '#0f3460'
+          const border = urgent ? '2px solid #f44336' : warn ? '2px solid #f0a500' : '2px solid transparent'
+          return (
+          <div key={item.id} style={{ background: cardBg, borderRadius: 12, padding: 14, border }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontWeight: 700, fontSize: 15 }}>{item.item_name} × {item.quantity}</span>
-              <span style={{ background: item.item_category === 'drink' ? '#1565c0' : '#4a148c', color: '#fff', borderRadius: 6, padding: '2px 8px', fontSize: 11 }}>
-                {item.item_category === 'drink' ? '🥤' : '🍜'}
-              </span>
+              <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                <span style={{
+                  background: urgent ? '#f44336' : warn ? '#f0a500' : 'rgba(255,255,255,.15)',
+                  color: '#fff', borderRadius: 10, padding: '2px 8px', fontSize: 12, fontWeight: 700,
+                  animation: urgent ? 'pulse 1.5s ease-in-out infinite' : 'none'
+                }}>
+                  {age}min
+                </span>
+                <span style={{ background: item.item_category === 'drink' ? '#1565c0' : '#4a148c', color: '#fff', borderRadius: 6, padding: '2px 8px', fontSize: 11 }}>
+                  {item.item_category === 'drink' ? '🥤' : '🍜'}
+                </span>
+              </div>
             </div>
             <div style={{ fontSize: 13, color: '#aaa', marginBottom: 4 }}>
               🪑 Tisch {item.table_number}
@@ -147,7 +168,8 @@ function KitchenColumn({ title, items, color, onUpdate, onCancelClick, toggleSol
               </button>
             )}
           </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
