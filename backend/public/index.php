@@ -31,6 +31,7 @@ require_once ROOT_DIR . '/src/controllers/EventOrderController.php';
 require_once ROOT_DIR . '/src/controllers/KitchenController.php';
 require_once ROOT_DIR . '/src/controllers/RevenueController.php';
 require_once ROOT_DIR . '/src/controllers/UserManagerController.php';
+require_once ROOT_DIR . '/src/controllers/SettingsController.php';
 
 // ── CORS ────────────────────────────────────────────────────────────────────
 $allowedOrigin = $_ENV['CORS_ORIGIN'] ?? getenv('CORS_ORIGIN') ?: '*';
@@ -90,6 +91,7 @@ $eventOrderCtrl  = new EventOrderController($db, $auth);
 $kitchenCtrl     = new KitchenController($db, $auth);
 $revenueCtrl     = new RevenueController($db, $auth);
 $userMgrCtrl     = new UserManagerController($db, $auth);
+$settingsCtrl    = new SettingsController($db, $auth);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ROUTES
@@ -196,6 +198,10 @@ $router->delete('/api/admin/customers/{id}',                fn($p) => $userMgrCt
 $router->get(   '/api/admin/staff',                         fn() => $userMgrCtrl->listStaff());
 $router->post(  '/api/admin/staff/{id}/credentials',        fn($p) => $userMgrCtrl->setStaffCredentials((int)$p['id']));
 $router->delete('/api/admin/staff/{id}/credentials',        fn($p) => $userMgrCtrl->revokeStaffCredentials((int)$p['id']));
+
+// ── Admin settings: menu default category ───────────────────────────────────
+$router->get('/api/admin/settings/menu/default_category', fn() => $settingsCtrl->getDefaultCategory());
+$router->put('/api/admin/settings/menu/default_category', fn() => $settingsCtrl->setDefaultCategory());
 $router->put(   '/api/admin/members/{id}/role',             fn($p) => $userMgrCtrl->updateMemberRole((int)$p['id']));
 
 // ── File upload ───────────────────────────────────────────────────────────────

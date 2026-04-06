@@ -107,6 +107,7 @@ function ItemForm({ initial, categories, onSave, onCancel }) {
 export default function MenuManager() {
   const [menu, setMenu]       = useState([])
   const [loading, setLoading] = useState(true)
+  const [defaultCatId, setDefaultCatId] = useState(null)
   const [editItem, setEditItem]   = useState(null)
   const [deleteItem, setDeleteItem] = useState(null)
   const [expanded, setExpanded]   = useState({})
@@ -123,8 +124,12 @@ export default function MenuManager() {
 
   const load = () => {
     setLoading(true)
-    api.get('/api/menu').then(({ data }) => {
-      setMenu(data)
+    Promise.all([
+      api.get('/api/menu'),
+      api.get('/api/admin/settings/menu/default_category').catch(() => ({ data: { default_category: null } }))
+    ]).then(([menuRes, defRes]) => {
+      setMenu(menuRes.data)
+      setDefaultCatId(defRes.data.default_category?.id || null)
       if (data.length > 0 && Object.keys(expanded).length === 0) {
         setExpanded({ [data[0].id]: true })
       }
@@ -241,7 +246,12 @@ export default function MenuManager() {
                   {cat.name_jp && <span className="text-xs text-dusk/40 font-japanese">{cat.name_jp}</span>}
                   <span className="text-xs bg-gray-100 text-dusk/50 px-2 py-0.5 rounded-full">{cat.items.length} Items</span>
                 </button>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
+                  {defaultCatId === cat.id ? (
+                    <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Default</span>
+                  ) : (
+                    <button onClick={async () => { await api.put('/api/admin/settings/menu/default_category', { id: cat.id }); setDefaultCatId(cat.id) }} className="text-xs bg-gray-100 text-dusk px-2 py-0.5 rounded-full hover:bg-lavender/20">Set Default</button>
+                  )}
                   <button onClick={() => startEditCategory(cat)} className="p-1.5 rounded-lg text-dusk/40 hover:text-maid hover:bg-maid/10 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
                   <button onClick={() => setDeleteCat(cat.id)} className="p-1.5 rounded-lg text-dusk/40 hover:text-rose-500 hover:bg-rose-50 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                 </div>
