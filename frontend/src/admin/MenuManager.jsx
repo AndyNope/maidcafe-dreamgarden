@@ -299,7 +299,7 @@ export default function MenuManager() {
         </div>
       )}
 
-      {/* Delete confirm */}
+      {/* Delete item confirm */}
       <AnimatePresence>
         {deleteItem && (
           <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -308,10 +308,29 @@ export default function MenuManager() {
               initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}>
               <Trash2 className="w-10 h-10 text-rose-400 mx-auto mb-4" />
               <p className="font-bold text-dusk mb-2">Item löschen?</p>
-              <p className="text-dusk/50 text-sm mb-6">Beim Löschen wird diese Kategorie entfernt und alle zugehörigen Items werden der Kategorie "Uncategorized" zugewiesen.</p>
+              <p className="text-dusk/50 text-sm mb-6">Dieser Artikel wird dauerhaft entfernt.</p>
               <div className="flex gap-3 justify-center">
                 <button onClick={() => removeItem(deleteItem)} className="px-6 py-2.5 bg-rose-500 text-white font-bold rounded-full hover:bg-rose-600 transition-colors">Löschen</button>
                 <button onClick={() => setDeleteItem(null)} className="px-6 py-2.5 bg-gray-100 text-dusk font-bold rounded-full hover:bg-gray-200 transition-colors">Abbrechen</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Delete category confirm */}
+      <AnimatePresence>
+        {deleteCat && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="bg-white rounded-kawaii p-8 max-w-sm w-full shadow-kawaii-lg text-center"
+              initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}>
+              <Trash2 className="w-10 h-10 text-rose-400 mx-auto mb-4" />
+              <p className="font-bold text-dusk mb-2">Kategorie löschen?</p>
+              <p className="text-dusk/50 text-sm mb-6">Alle Artikel dieser Kategorie werden automatisch der Kategorie <span className="font-semibold text-dusk">"Unkategorisiert"</span> zugewiesen.</p>
+              <div className="flex gap-3 justify-center">
+                <button onClick={() => removeCategory(deleteCat)} className="px-6 py-2.5 bg-rose-500 text-white font-bold rounded-full hover:bg-rose-600 transition-colors">Löschen</button>
+                <button onClick={() => setDeleteCat(null)} className="px-6 py-2.5 bg-gray-100 text-dusk font-bold rounded-full hover:bg-gray-200 transition-colors">Abbrechen</button>
               </div>
             </motion.div>
           </motion.div>

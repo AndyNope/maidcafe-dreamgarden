@@ -1,28 +1,47 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ChevronLeft, Users, Receipt, Plus, Minus, X, Check, Loader } from 'lucide-react'
 import api from '../../api/client'
 import { useStaffAuth } from '../../context/StaffAuthContext'
 
-const ITEM_STATUS_COLOR = { pending: '#f0a500', preparing: '#2196f3', ready: '#4caf50', served: '#aaa', cancelled: '#f44336' }
-const ITEM_STATUS_LABEL = { pending: 'Ausstehend', preparing: 'Zubereitung', ready: 'Bereit', served: 'Serviert', cancelled: 'Storniert' }
+const STATUS_COLOR = {
+  pending:   'bg-amber-400',
+  preparing: 'bg-blue-400',
+  ready:     'bg-green-500',
+  served:    'bg-gray-400',
+  cancelled: 'bg-red-400',
+}
+const STATUS_LABEL = {
+  pending:   'Ausstehend',
+  preparing: 'In Zubereitung',
+  ready:     '✓ Bereit',
+  served:    'Serviert',
+  cancelled: 'Storniert',
+}
 
 export default function OrderView() {
-  const { id }          = useParams()
-  const { token }       = useStaffAuth()
-  const navigate        = useNavigate()
-  const headers         = { Authorization: `Bearer ${token}` }
+  const { id }       = useParams()
+  const { token }    = useStaffAuth()
+  const navigate     = useNavigate()
+  const headers      = { Authorization: `Bearer ${token}` }
 
   const [order, setOrder]     = useState(null)
   const [menu, setMenu]       = useState([])
-  const [categories, setCats] = useState([])
+  const [cats, setCats]       = useState([])
   const [selCat, setSelCat]   = useState(null)
   const [loading, setLoading] = useState(true)
+  const [tab, setTab]         = useState('order')
   const [guest, setGuest]     = useState('')
-  const [tab, setTab]         = useState('order') // 'order' | 'bill'
 
-  const load = () => api.get(`/api/app/orders/${id}`, { headers }).then(r => setOrder(r.data))
+  // Qty picker modal
+  const [qtyItem, setQtyItem] = useState(null)
+  const [qty, setQty]         = useState(1)
+  const [adding, setAdding]   = useState(false)
 
-  // Auto-refresh order every 20s so kitchen status changes are visible
+  const load = () =>
+    api.get(`/api/app/orders/${id}`, { headers }).then(r => setOrder(r.data))
+
+  // Live refresh every 20s — kitchen status changes appear without manual reload
   useEffect(() => {
     const interval = setInterval(load, 20_000)
     return () => clearInterval(interval)
@@ -32,21 +51,31 @@ export default function OrderView() {
     Promise.all([
       load(),
       api.get('/api/menu', { headers }).then(r => {
-        // /api/menu returns [{id, name, items:[...]}, ...] — flatten to item list
         const flat = r.data.flatMap(cat =>
           (cat.items || []).map(item => ({ ...item, category_id: cat.id }))
         )
         setMenu(flat)
       }),
-      api.get('/api/menu/categories', { headers }).then(r => { setCats(r.data); setSelCat(r.data[0]?.id || null) }),
+      api.get('/api/menu/categories', { headers }).then(r => {
+        setCats(r.data)
+        setSelCat(r.data[0]?.id || null)
+      }),
     ]).finally(() => setLoading(false))
   }, [id])
 
-  const addMenuItem = async (menuItem) => {
-    await api.post(`/api/app/orders/${id}/items`, {
-      items: [{ menu_item_id: menuItem.id, quantity: 1, assigned_guest: guest || null }]
-    }, { headers })
-    await load()
+  const openQtyModal = (menuItem) => { setQtyItem(menuItem); setQty(1) }
+
+  const confirmAdd = async () => {
+    setAdding(true)
+    try {
+      await api.post(`/api/app/orders/${id}/items`, {
+        items: [{ menu_item_id: qtyItem.id, quantity: qty, assigned_guest: guest || null }]
+      }, { headers })
+      setQtyItem(null)
+      await load()
+    } finally {
+      setAdding(false)
+    }
   }
 
   const removeItem = async (itemId) => {
@@ -55,141 +84,271 @@ export default function OrderView() {
   }
 
   const closeOrder = async () => {
-    if (!confirm('Bestellung abschliessen?')) return
+    if (!confirm('Tisch wirklich abschliessen?\nDie Bestellung wird archiviert und du kommst zur Tischübersicht zurück.')) return
     await api.put(`/api/app/orders/${id}/close`, {}, { headers })
     navigate('/app')
   }
 
-  if (loading) return <div style={{ textAlign: 'center', paddingTop: 100, fontSize: 32 }}>🌸</div>
-  if (!order) return <p style={{ padding: 24 }}>Bestellung nicht gefunden.</p>
+  if (loading) return (
+    <div className="min-h-screen bg-dream flex items-center justify-center">
+      <div className="text-5xl animate-float">🌸</div>
+    </div>
+  )
 
-  const activeItems = order.items.filter(i => i.status !== 'cancelled')
-  const tableTotal = activeItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
+  if (!order) return (
+    <div className="min-h-screen bg-dream flex items-center justify-center">
+      <p className="text-dusk/50">Bestellung nicht gefunden.</p>
+    </div>
+  )
 
+  const activeItems  = order.items.filter(i => i.status !== 'cancelled')
+  const tableTotal   = activeItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
   const filteredMenu = menu.filter(m => m.available && (!selCat || m.category_id == selCat))
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff9f5', paddingBottom: 100 }}>
-      {/* Header */}
-      <div style={{ background: '#b5838d', color: '#fff', padding: '14px 16px', position: 'sticky', top: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <button onClick={() => navigate('/app')} style={{ background: 'none', border: 'none', color: '#fff', fontSize: 20, cursor: 'pointer', marginRight: 8 }}>←</button>
-          <strong>Tisch {order.table_number}</strong>
-          {order.table_name && <span style={{ opacity: .8, marginLeft: 6, fontSize: 14 }}>{order.table_name}</span>}
+    <div className="min-h-screen bg-dream pb-24">
+
+      {/* ── Header ───────────────────────────────────────────────────────── */}
+      <div className="sticky top-0 z-20 px-4 py-3 flex items-center justify-between shadow-kawaii"
+        style={{ background: 'linear-gradient(135deg, #4A1942 0%, #7B2F7A 100%)' }}>
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate('/app')}
+            className="p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <div>
+            <h1 className="font-display text-white font-bold text-lg leading-tight">
+              Tisch {order.table_number}
+              {order.table_name && <span className="font-normal opacity-60 ml-2 text-sm">{order.table_name}</span>}
+            </h1>
+            <p className="text-white/50 text-xs">
+              {order.staff_name && `${order.staff_name} · `}Bestellung #{order.id}
+            </p>
+          </div>
         </div>
-        <div style={{ fontWeight: 700, fontSize: 18 }}>CHF {tableTotal.toFixed(2)}</div>
+        <div className="text-right">
+          <div className="text-white font-bold text-xl">CHF {tableTotal.toFixed(2)}</div>
+          <div className="text-white/40 text-xs">{activeItems.length} Artikel</div>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', background: '#fff', borderBottom: '1px solid #eee' }}>
-        {[['order','📝 Bestellen'],['bill','💳 Rechnung']].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)} style={{ flex: 1, padding: '12px', border: 'none', background: 'none', cursor: 'pointer', fontWeight: tab === key ? 700 : 500, color: tab === key ? '#b5838d' : '#888', borderBottom: tab === key ? '2px solid #b5838d' : '2px solid transparent', fontSize: 15 }}>
-            {label}
+      {/* ── Tabs ─────────────────────────────────────────────────────────── */}
+      <div className="bg-white border-b border-sakura/30 px-4 flex sticky top-[62px] z-10">
+        {[['order', '📝', 'Bestellen'], ['bill', '💳', 'Rechnung']].map(([key, icon, label]) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`flex items-center gap-1.5 py-3 px-5 text-sm font-bold border-b-2 transition-colors ${
+              tab === key
+                ? 'border-maid text-maid'
+                : 'border-transparent text-dusk/40 hover:text-dusk'
+            }`}>
+            {icon} {label}
           </button>
         ))}
       </div>
 
+      {/* ── Order Tab ────────────────────────────────────────────────────── */}
       {tab === 'order' && (
-        <div style={{ padding: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16, alignItems: 'start' }}>
-          {/* Left: current order items */}
-          <div>
-            <h3 style={{ margin: '0 0 12px', color: '#333' }}>Aktuelle Bestellung</h3>
+        <div className="p-4 grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
 
-            {/* Guest label input */}
-            <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontSize: 14, color: '#666', whiteSpace: 'nowrap' }}>👤 Für:</span>
+          {/* Current order items */}
+          <div className="space-y-3">
+            <h2 className="font-display font-bold text-dusk text-lg">Aktuelle Bestellung</h2>
+
+            {/* Guest label */}
+            <div className="bg-white rounded-kawaii shadow-kawaii border border-sakura/30 p-3 flex items-center gap-2">
+              <Users className="w-4 h-4 text-maid flex-shrink-0" />
               <input
                 value={guest}
                 onChange={e => setGuest(e.target.value)}
-                placeholder="Gast (optional)"
-                style={{ flex: 1, border: '1px solid #e0c8cc', borderRadius: 10, padding: '8px 12px', fontSize: 14 }}
+                placeholder="Items für Gast (optional)…"
+                className="flex-1 bg-transparent text-sm text-dusk placeholder-dusk/30 outline-none"
               />
             </div>
 
-            {activeItems.length === 0 && <p style={{ color: '#aaa', fontSize: 14 }}>Noch keine Artikel.</p>}
+            {activeItems.length === 0 && (
+              <div className="text-center py-10 text-dusk/30 text-sm">
+                <div className="text-3xl mb-2">🍽️</div>
+                Noch keine Artikel bestellt.
+              </div>
+            )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="space-y-2">
               {activeItems.map(item => (
-                <div key={item.id} style={{ background: '#fff', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>{item.item_name} × {item.quantity}</div>
-                    {item.assigned_guest && <div style={{ fontSize: 12, color: '#aaa' }}>👤 {item.assigned_guest}</div>}
+                <div key={item.id}
+                  className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-kawaii border border-sakura/20">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-dusk text-sm">
+                      {item.item_name}
+                      <span className="text-dusk/40 font-normal"> × {item.quantity}</span>
+                    </p>
+                    {item.assigned_guest && (
+                      <p className="text-xs text-dusk/40">👤 {item.assigned_guest}</p>
+                    )}
                   </div>
-                  <span style={{ background: ITEM_STATUS_COLOR[item.status], color: '#fff', fontSize: 11, borderRadius: 6, padding: '2px 8px' }}>{ITEM_STATUS_LABEL[item.status]}</span>
-                  <div style={{ fontWeight: 600, fontSize: 14, color: '#b5838d', whiteSpace: 'nowrap' }}>
+                  <span className={`text-white text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${STATUS_COLOR[item.status]}`}>
+                    {STATUS_LABEL[item.status]}
+                  </span>
+                  <span className="text-maid font-bold text-sm whitespace-nowrap flex-shrink-0">
                     CHF {(item.unit_price * item.quantity).toFixed(2)}
-                  </div>
+                  </span>
                   {item.status === 'pending' && (
-                    <button onClick={() => removeItem(item.id)} style={{ background: 'none', border: 'none', color: '#ccc', cursor: 'pointer', fontSize: 18 }}>✕</button>
+                    <button onClick={() => removeItem(item.id)}
+                      className="p-1 rounded-full text-gray-300 hover:text-rose-400 hover:bg-rose-50 transition-colors flex-shrink-0">
+                      <X className="w-4 h-4" />
+                    </button>
                   )}
                 </div>
               ))}
             </div>
 
-            {order.status === 'open' && (
-              <button onClick={closeOrder} style={{ marginTop: 16, width: '100%', background: '#4caf50', color: '#fff', border: 'none', borderRadius: 24, padding: '12px', fontWeight: 700, cursor: 'pointer', fontSize: 15 }}>
-                ✅ Bestellung abschliessen
+            {order.status === 'open' && activeItems.length > 0 && (
+              <button onClick={closeOrder}
+                className="w-full mt-2 py-3 rounded-kawaii border-2 border-dusk/20 text-dusk/50 font-bold hover:bg-dusk/5 hover:border-dusk/30 transition-colors text-sm">
+                🔒 Tisch abschliessen
               </button>
             )}
           </div>
 
-          {/* Right: menu picker */}
+          {/* Menu picker */}
           {order.status === 'open' && (
-            <div>
-              <h3 style={{ margin: '0 0 12px', color: '#333' }}>Menü hinzufügen</h3>
+            <div className="space-y-3">
+              <h2 className="font-display font-bold text-dusk text-lg">Menü hinzufügen</h2>
 
-              {/* Category filter */}
-              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginBottom: 12, paddingBottom: 4 }}>
-                {categories.map(c => (
-                  <button key={c.id} onClick={() => setSelCat(c.id)} style={{ whiteSpace: 'nowrap', background: selCat === c.id ? '#b5838d' : '#f0e8ea', color: selCat === c.id ? '#fff' : '#b5838d', border: 'none', borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+              {/* Category chips */}
+              <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                {cats.map(c => (
+                  <button key={c.id} onClick={() => setSelCat(c.id)}
+                    className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-bold border transition-colors flex-shrink-0 ${
+                      selCat === c.id
+                        ? 'bg-maid text-white border-maid shadow-kawaii'
+                        : 'bg-white text-dusk/60 border-sakura/40 hover:border-maid/40'
+                    }`}>
                     {c.name}
+                    {c.name_jp && <span className="ml-1 opacity-50 font-japanese text-xs">{c.name_jp}</span>}
                   </button>
                 ))}
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="space-y-2">
                 {filteredMenu.map(m => (
-                  <div key={m.id} style={{ background: '#fff', borderRadius: 12, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10, boxShadow: '0 1px 6px rgba(0,0,0,.06)', cursor: 'pointer' }} onClick={() => addMenuItem(m)}>
-                    {m.image && <img src={`/uploads/${m.image}`} alt={m.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }} />}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 14 }}>{m.name}</div>
-                      {m.description && <div style={{ fontSize: 12, color: '#aaa' }}>{m.description.slice(0, 60)}</div>}
+                  <button key={m.id} onClick={() => openQtyModal(m)}
+                    className="w-full bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-kawaii border border-sakura/20 hover:border-maid/40 hover:shadow-kawaii-lg transition-all text-left group">
+                    {m.image
+                      ? <img src={`/uploads/${m.image}`} alt={m.name}
+                          className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                      : <div className="w-12 h-12 rounded-xl bg-sakura/30 flex items-center justify-center text-xl flex-shrink-0">🌸</div>
+                    }
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-dusk text-sm">{m.name}</p>
+                      {m.name_jp && <p className="text-xs text-dusk/40 font-japanese">{m.name_jp}</p>}
+                      {m.description && <p className="text-xs text-dusk/40 truncate">{m.description}</p>}
                     </div>
-                    <div style={{ fontWeight: 700, color: '#b5838d', whiteSpace: 'nowrap' }}>CHF {parseFloat(m.price).toFixed(2)}</div>
-                    <span style={{ fontSize: 22, color: '#b5838d' }}>+</span>
-                  </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-bold text-maid text-sm">CHF {parseFloat(m.price).toFixed(2)}</p>
+                      <span className="text-xs text-maid/40 group-hover:text-maid transition-colors">+ hinzufügen</span>
+                    </div>
+                  </button>
                 ))}
+                {filteredMenu.length === 0 && (
+                  <p className="text-center py-8 text-dusk/30 text-sm">Keine Artikel verfügbar.</p>
+                )}
               </div>
             </div>
+          )}
+
+          {order.status !== 'open' && (
+            <div className="text-center py-8 text-dusk/40 text-sm col-span-full">Tisch ist geschlossen.</div>
           )}
         </div>
       )}
 
+      {/* ── Bill Tab ──────────────────────────────────────────────────────── */}
       {tab === 'bill' && (
         <SplitBill order={order} token={token} onReload={load} />
+      )}
+
+      {/* ── Qty Picker Modal ──────────────────────────────────────────────── */}
+      {qtyItem && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-4"
+          onClick={e => { if (e.target === e.currentTarget) setQtyItem(null) }}>
+          <div className="bg-white rounded-kawaii shadow-kawaii-lg p-6 w-full max-w-sm">
+            {/* Item preview */}
+            <div className="flex items-center gap-4 mb-5">
+              {qtyItem.image
+                ? <img src={`/uploads/${qtyItem.image}`} alt={qtyItem.name}
+                    className="w-16 h-16 rounded-2xl object-cover flex-shrink-0" />
+                : <div className="w-16 h-16 rounded-2xl bg-sakura/30 flex items-center justify-center text-3xl flex-shrink-0">🌸</div>
+              }
+              <div>
+                <p className="font-display font-bold text-dusk text-lg leading-tight">{qtyItem.name}</p>
+                {qtyItem.name_jp && <p className="text-xs text-dusk/40 font-japanese">{qtyItem.name_jp}</p>}
+                <p className="text-maid font-bold mt-1">CHF {parseFloat(qtyItem.price).toFixed(2)} / Stk.</p>
+              </div>
+            </div>
+
+            {guest && (
+              <p className="text-xs text-dusk/50 bg-sakura/20 rounded-xl px-3 py-2 mb-4 font-medium">
+                👤 Für: {guest}
+              </p>
+            )}
+
+            {/* Qty stepper */}
+            <div className="flex items-center justify-center gap-6 mb-4">
+              <button onClick={() => setQty(q => Math.max(1, q - 1))}
+                className="w-11 h-11 rounded-full bg-sakura/40 text-dusk font-bold hover:bg-sakura transition-colors flex items-center justify-center">
+                <Minus className="w-4 h-4" />
+              </button>
+              <span className="text-4xl font-display font-bold text-dusk w-12 text-center">{qty}</span>
+              <button onClick={() => setQty(q => q + 1)}
+                className="w-11 h-11 rounded-full bg-maid text-white font-bold hover:bg-maid-dark transition-colors flex items-center justify-center">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-center text-dusk/50 text-sm mb-5">
+              Gesamt: <strong className="text-dusk text-base">CHF {(parseFloat(qtyItem.price) * qty).toFixed(2)}</strong>
+            </p>
+
+            <div className="flex gap-3">
+              <button onClick={() => setQtyItem(null)}
+                className="flex-1 py-3 rounded-2xl border-2 border-gray-100 text-dusk/60 font-bold hover:bg-gray-50 transition-colors">
+                Abbrechen
+              </button>
+              <button onClick={confirmAdd} disabled={adding}
+                className="flex-1 py-3 rounded-2xl bg-maid text-white font-bold shadow-kawaii hover:bg-maid-dark transition-colors flex items-center justify-center gap-2 disabled:opacity-60">
+                {adding ? <Loader className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Zur Küche →
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
 }
 
-// ── SplitBill embedded component ─────────────────────────────────────────────
-
+// ── SplitBill Component ───────────────────────────────────────────────────────
 function SplitBill({ order, token, onReload }) {
   const headers = { Authorization: `Bearer ${token}` }
-  const [bills, setBills]       = useState([])
-  const [guests, setGuests]     = useState(['Gast 1', 'Gast 2'])
-  const [assignments, setAssign] = useState({}) // itemId → guestName
-  const [newGuest, setNewGuest] = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [createdBills, setCreatedBills] = useState(null)
+
+  const [bills, setBills]        = useState([])
+  const [mode, setMode]          = useState('total')  // 'total' | 'split'
+  const [guests, setGuests]      = useState(['Gast 1', 'Gast 2'])
+  const [assignments, setAssign] = useState({})
+  const [newGuest, setNewGuest]  = useState('')
+  const [loading, setLoading]    = useState(false)
+  const [error, setError]        = useState('')
+
+  const activeItems = order.items.filter(i => i.status !== 'cancelled')
+  const tableTotal  = activeItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
+
+  const reloadBills = () =>
+    api.get(`/api/app/orders/${order.id}/bills`, { headers }).then(r => setBills(r.data))
 
   useEffect(() => {
-    api.get(`/api/app/orders/${order.id}/bills`, { headers }).then(r => setBills(r.data))
-    // Pre-assign items by their already assigned_guest
+    reloadBills()
     const init = {}
-    order.items.filter(i => i.status !== 'cancelled').forEach(i => {
-      if (i.assigned_guest) init[i.id] = i.assigned_guest
-    })
+    activeItems.forEach(i => { if (i.assigned_guest) init[i.id] = i.assigned_guest })
     setAssign(init)
   }, [order.id])
 
@@ -197,108 +356,189 @@ function SplitBill({ order, token, onReload }) {
     if (newGuest.trim()) { setGuests(g => [...g, newGuest.trim()]); setNewGuest('') }
   }
 
-  const assign = (itemId, guestName) => setAssign(a => ({ ...a, [itemId]: guestName }))
-
-  const createBills = async () => {
-    setLoading(true)
-    const billMap = {}
-    const activeItems = order.items.filter(i => i.status !== 'cancelled')
-    activeItems.forEach(item => {
-      const g = assignments[item.id] || 'Unzugeordnet'
-      if (!billMap[g]) billMap[g] = []
-      billMap[g].push(item.id)
-    })
-
-    const billsPayload = Object.entries(billMap).map(([guest_name, item_ids]) => ({ guest_name, item_ids }))
-    const { data } = await api.post(`/api/app/orders/${order.id}/bills`, { bills: billsPayload }, { headers })
-    setCreatedBills(data.bills)
-    setLoading(false)
-    onReload()
+  const createSingleBill = async () => {
+    setLoading(true); setError('')
+    try {
+      await api.post(`/api/app/orders/${order.id}/bills`, {
+        bills: [{ guest_name: 'Tischrechnung', item_ids: activeItems.map(i => i.id) }]
+      }, { headers })
+      await reloadBills()
+      onReload()
+    } catch {
+      setError('Fehler beim Erstellen der Rechnung.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const markPaid = async (billId, method = 'cash') => {
+  const createSplitBills = async () => {
+    setLoading(true); setError('')
+    try {
+      const billMap = {}
+      activeItems.forEach(item => {
+        const g = assignments[item.id] || 'Unzugeordnet'
+        if (!billMap[g]) billMap[g] = []
+        billMap[g].push(item.id)
+      })
+      const payload = Object.entries(billMap).map(([guest_name, item_ids]) => ({ guest_name, item_ids }))
+      await api.post(`/api/app/orders/${order.id}/bills`, { bills: payload }, { headers })
+      await reloadBills()
+      onReload()
+    } catch {
+      setError('Fehler beim Erstellen der Rechnungen.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const markPaid = async (billId, method) => {
     await api.put(`/api/app/bills/${billId}/pay`, { payment_method: method }, { headers })
-    api.get(`/api/app/orders/${order.id}/bills`, { headers }).then(r => setBills(r.data))
+    await reloadBills()
   }
-
-  const activeItems = order.items.filter(i => i.status !== 'cancelled')
-  const tableTotal  = activeItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
 
   return (
-    <div style={{ padding: 16 }}>
-      <h3 style={{ margin: '0 0 16px', color: '#333' }}>💳 Rechnung aufteilen</h3>
+    <div className="p-4 space-y-4 max-w-lg mx-auto">
+
+      {/* Summary */}
+      <div className="bg-white rounded-kawaii shadow-kawaii border border-sakura/20 p-5 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-dusk/50">Tischrechnung gesamt</p>
+          <p className="font-display font-bold text-3xl text-dusk">CHF {tableTotal.toFixed(2)}</p>
+          <p className="text-xs text-dusk/40 mt-1">{activeItems.length} Artikel</p>
+        </div>
+        <Receipt className="w-10 h-10 text-maid/30" />
+      </div>
 
       {/* Existing bills */}
       {bills.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <h4 style={{ color: '#b5838d', margin: '0 0 10px' }}>Aktuelle Rechnungen</h4>
+        <div className="space-y-3">
+          <h3 className="font-display font-bold text-dusk">Rechnungen</h3>
           {bills.map(b => (
-            <div key={b.id} style={{ background: '#fff', borderRadius: 12, padding: '12px 16px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 12, boxShadow: '0 1px 6px rgba(0,0,0,.06)' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700 }}>{b.guest_name}</div>
-                <div style={{ fontSize: 18, color: '#b5838d', fontWeight: 700 }}>CHF {parseFloat(b.total).toFixed(2)}</div>
-                {b.payment_status === 'pending' && b.stripe_checkout_url && (
-                  <div style={{ marginTop: 6 }}>
+            <div key={b.id}
+              className="bg-white rounded-kawaii shadow-kawaii border border-sakura/20 p-4 space-y-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="font-bold text-dusk">{b.guest_name}</p>
+                  <p className="font-display font-bold text-2xl text-maid">
+                    CHF {parseFloat(b.total).toFixed(2)}
+                  </p>
+                </div>
+                {b.payment_status === 'paid'
+                  ? <span className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full">✓ Bezahlt</span>
+                  : <span className="bg-amber-400 text-white text-xs font-bold px-3 py-1 rounded-full">Offen</span>
+                }
+              </div>
+              {b.payment_status !== 'paid' && (
+                <>
+                  <div className="flex gap-2">
+                    <button onClick={() => markPaid(b.id, 'cash')}
+                      className="flex-1 py-2.5 bg-green-500 text-white rounded-xl text-sm font-bold hover:bg-green-600 transition-colors">
+                      💵 Bar
+                    </button>
+                    <button onClick={() => markPaid(b.id, 'twint')}
+                      className="flex-1 py-2.5 bg-sky-500 text-white rounded-xl text-sm font-bold hover:bg-sky-600 transition-colors">
+                      📱 TWINT
+                    </button>
+                    <button onClick={() => markPaid(b.id, 'stripe')}
+                      className="flex-1 py-2.5 bg-maid text-white rounded-xl text-sm font-bold hover:bg-maid-dark transition-colors">
+                      💳 Karte
+                    </button>
+                  </div>
+                  {b.stripe_checkout_url && (
                     <a href={b.stripe_checkout_url} target="_blank" rel="noreferrer"
-                      style={{ color: '#b5838d', fontSize: 13, textDecoration: 'none', border: '1px solid #b5838d', borderRadius: 8, padding: '3px 10px' }}>
-                      🔗 Zahlungslink
+                      className="block text-center text-sm text-maid border border-maid/30 rounded-xl py-2 hover:bg-maid/5 transition-colors">
+                      🔗 Online-Zahlungslink öffnen
                     </a>
-                    <span style={{ marginLeft: 8, fontSize: 12, color: '#aaa' }}>QR scannen lassen</span>
-                  </div>
-                )}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                {b.payment_status === 'paid' ? (
-                  <span style={{ background: '#4caf50', color: '#fff', borderRadius: 8, padding: '3px 12px', fontSize: 13 }}>Bezahlt ✓</span>
-                ) : (
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => markPaid(b.id, 'cash')} style={{ background: '#4caf50', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontSize: 12 }}>Bar</button>
-                    <button onClick={() => markPaid(b.id, 'twint')} style={{ background: '#1a9ed4', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontSize: 12 }}>TWINT</button>
-                    <button onClick={() => markPaid(b.id, 'stripe')} style={{ background: '#b5838d', color: '#fff', border: 'none', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', fontSize: 12 }}>Karte</button>
-                  </div>
-                )}
-              </div>
+                  )}
+                </>
+              )}
             </div>
           ))}
         </div>
       )}
 
-      {/* Assign items to guests */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <input value={newGuest} onChange={e => setNewGuest(e.target.value)} placeholder="Gast hinzufügen…" style={{ flex: 1, border: '1px solid #e0c8cc', borderRadius: 10, padding: '8px 12px', fontSize: 14 }} onKeyDown={e => e.key === 'Enter' && addGuest()} />
-          <button onClick={addGuest} style={{ background: '#b5838d', color: '#fff', border: 'none', borderRadius: 10, padding: '8px 16px', cursor: 'pointer' }}>+</button>
-        </div>
+      {/* Create bills (only if none exist yet) */}
+      {bills.length === 0 && (
+        activeItems.length === 0
+          ? <p className="text-center py-8 text-dusk/40 text-sm">Keine Artikel zum Abrechnen.</p>
+          : <>
+              {/* Mode toggle */}
+              <div className="flex rounded-kawaii border border-sakura/40 overflow-hidden bg-white shadow-kawaii">
+                {[['total', '📄 Gesamtrechnung'], ['split', '👥 Nach Gast aufteilen']].map(([key, label]) => (
+                  <button key={key} onClick={() => setMode(key)}
+                    className={`flex-1 py-3 text-sm font-bold transition-colors ${
+                      mode === key ? 'bg-maid text-white' : 'text-dusk/60 hover:bg-sakura/10'
+                    }`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
 
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          {guests.map(g => <span key={g} style={{ background: '#f0e8ea', color: '#b5838d', borderRadius: 20, padding: '4px 12px', fontSize: 13, fontWeight: 600 }}>{g}</span>)}
-        </div>
+              {/* Total mode */}
+              {mode === 'total' && (
+                <div className="space-y-3">
+                  <p className="text-sm text-dusk/50 text-center">
+                    Eine Rechnung über <strong className="text-dusk">CHF {tableTotal.toFixed(2)}</strong> für den ganzen Tisch.
+                  </p>
+                  {error && <p className="text-rose-500 text-sm text-center">{error}</p>}
+                  <button onClick={createSingleBill} disabled={loading}
+                    className="w-full py-4 rounded-kawaii bg-maid text-white font-bold shadow-kawaii hover:bg-maid-dark transition-colors text-base disabled:opacity-50 flex items-center justify-center gap-2">
+                    {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Receipt className="w-5 h-5" />}
+                    Rechnung erstellen
+                  </button>
+                </div>
+              )}
 
-        {activeItems.map(item => (
-          <div key={item.id} style={{ background: '#fff', borderRadius: 12, padding: '10px 14px', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>{item.item_name}</div>
-              <div style={{ fontSize: 13, color: '#b5838d' }}>CHF {(item.unit_price * item.quantity).toFixed(2)}</div>
-            </div>
-            <select
-              value={assignments[item.id] || ''}
-              onChange={e => assign(item.id, e.target.value)}
-              style={{ border: '1px solid #e0c8cc', borderRadius: 8, padding: '6px 10px', fontSize: 14, background: '#fff' }}
-            >
-              <option value="">Nicht zugeordnet</option>
-              {guests.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-        ))}
-      </div>
+              {/* Split mode */}
+              {mode === 'split' && (
+                <div className="space-y-4">
+                  <div className="flex gap-2">
+                    <input value={newGuest} onChange={e => setNewGuest(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addGuest()}
+                      placeholder="Gast hinzufügen…" className="flex-1 input-kawaii text-sm" />
+                    <button onClick={addGuest}
+                      className="px-4 py-2 rounded-2xl bg-maid text-white font-bold hover:bg-maid-dark transition-colors">
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 17, marginBottom: 16 }}>
-        <span>Total Tisch:</span><span style={{ color: '#b5838d' }}>CHF {tableTotal.toFixed(2)}</span>
-      </div>
+                  <div className="flex flex-wrap gap-2">
+                    {guests.map(g => (
+                      <span key={g} className="bg-sakura/40 text-dusk text-sm font-bold px-3 py-1 rounded-full">{g}</span>
+                    ))}
+                  </div>
 
-      <button onClick={createBills} disabled={loading || activeItems.length === 0} style={{ width: '100%', background: '#b5838d', color: '#fff', border: 'none', borderRadius: 24, padding: '14px', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
-        {loading ? '…' : '💳 Rechnungen erstellen'}
-      </button>
+                  <div className="space-y-2">
+                    {activeItems.map(item => (
+                      <div key={item.id}
+                        className="bg-white rounded-2xl px-4 py-3 flex items-center gap-3 shadow-kawaii border border-sakura/20">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-dusk text-sm">
+                            {item.item_name} <span className="text-dusk/40">× {item.quantity}</span>
+                          </p>
+                          <p className="text-maid text-xs font-bold">CHF {(item.unit_price * item.quantity).toFixed(2)}</p>
+                        </div>
+                        <select value={assignments[item.id] || ''}
+                          onChange={e => setAssign(a => ({ ...a, [item.id]: e.target.value }))}
+                          className="border border-sakura/40 rounded-xl px-3 py-2 text-sm text-dusk bg-white focus:border-maid outline-none">
+                          <option value="">Nicht zugeordnet</option>
+                          {guests.map(g => <option key={g} value={g}>{g}</option>)}
+                        </select>
+                      </div>
+                    ))}
+                  </div>
+
+                  {error && <p className="text-rose-500 text-sm text-center">{error}</p>}
+                  <button onClick={createSplitBills} disabled={loading}
+                    className="w-full py-4 rounded-kawaii bg-maid text-white font-bold shadow-kawaii hover:bg-maid-dark transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                    {loading ? <Loader className="w-5 h-5 animate-spin" /> : <Users className="w-5 h-5" />}
+                    Rechnungen aufteilen
+                  </button>
+                </div>
+              )}
+            </>
+      )}
     </div>
   )
 }
+
